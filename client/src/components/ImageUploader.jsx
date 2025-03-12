@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 
-const ImageUploader = ({ onUpload, hasImage }) => {
+const ImageUploader = ({ onUpload }) => {
     const [previewUrl, setPreviewUrl] = useState(null);
     const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef(null);

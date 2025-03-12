@@ -64,7 +64,7 @@ function App() {
         <div className="meme-creation-container">
           <MemeSelector onSelect={handleMemeSelect} selectedMeme={selectedMeme} />
 
-          <ImageUploader onUpload={handleImageUpload} hasImage={!!userImage} />
+          <ImageUploader onUpload={handleImageUpload} />
 
           <button
             onClick={generateMeme}
