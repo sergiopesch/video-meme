@@ -46,6 +46,9 @@ lerna-debug.log*
 !/server/uploads/.gitkeep
 !/server/public/output/.gitkeep
 
+# Large video files
+/server/assets/videos/*.mp4
+
 # Temporary files
 *.tmp
 *.temp
