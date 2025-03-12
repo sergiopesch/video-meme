@@ -3,10 +3,10 @@
 // Meme template options
 const memeTemplates = [
     {
-        id: 'jensen',
-        name: 'Jensen Huang Walking',
-        description: 'NVIDIA CEO Jensen Huang walking onto stage',
-        thumbnail: '/src/assets/images/jensen-thumbnail.jpg'
+        id: 'lil-yachty',
+        name: 'Lil Yachty Template',
+        description: 'Lil Yachty walking onto stage',
+        thumbnail: '/src/assets/images/lil-yachty-thumbnail.jpg'
     },
     {
         id: 'psy',

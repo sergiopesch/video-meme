@@ -70,8 +70,8 @@ app.post('/api/generate-meme', upload.single('userImage'), async (req, res) => {
     
     // Get the appropriate template video based on meme type
     let templateVideoPath;
-    if (memeType === 'jensen') {
-      templateVideoPath = path.join(__dirname, 'assets', 'videos', 'jensen-template.mp4');
+    if (memeType === 'lil-yachty') {
+      templateVideoPath = path.join(__dirname, 'assets', 'videos', 'lil-yachty-template.mp4');
     } else if (memeType === 'psy') {
       templateVideoPath = path.join(__dirname, 'assets', 'videos', 'psy-template.mp4');
     } else {

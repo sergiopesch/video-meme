@@ -65,7 +65,7 @@ npm run prod
 
 ## How It Works
 
-1. **Select a Meme Template**: Choose between Jensen Huang walking onto stage or PSY making a grand entrance.
+1. **Select a Meme Template**: Choose between Lil Yachty walking onto stage or PSY making a grand entrance.
 2. **Upload Your Face**: Upload a clear image of your face.
 3. **Generate Meme**: Our server processes the video, replacing the original face with yours.
 4. **Download & Share**: Download your custom meme or share it directly to social media.

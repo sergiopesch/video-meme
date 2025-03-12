@@ -57,7 +57,7 @@ function App() {
     <div className="app-container">
       <header>
         <h1>Video Meme Generator</h1>
-        <p>Create your own Jensen or PSY entrance meme!</p>
+        <p>Create your own Lil Yachty or PSY entrance meme!</p>
       </header>
 
       <main>

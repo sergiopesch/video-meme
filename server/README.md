@@ -32,7 +32,7 @@ The current implementation is a simplified version that:
 
 The server includes two template videos:
 
-1. `jensen-template.mp4` - NVIDIA CEO Jensen Huang walking onto stage
+1. `lil-yachty-template.mp4` - Lil Yachty walking onto stage
 2. `psy-template.mp4` - PSY making a grand entrance
 
 In a production environment, you would need to:
