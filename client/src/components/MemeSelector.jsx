@@ -1,4 +1,4 @@
-// import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 // Meme template options
 const memeTemplates = [
@@ -17,11 +17,54 @@ const memeTemplates = [
 ];
 
 const MemeSelector = ({ onSelect, selectedMeme }) => {
+    const [templates, setTemplates] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+
+    useEffect(() => {
+        async function fetchTemplates() {
+            try {
+                const response = await fetch('http://localhost:5000/meme-templates');
+                const data = await response.json();
+
+                if (data.templates && Array.isArray(data.templates)) {
+                    setTemplates(data.templates);
+                } else {
+                    setTemplates([]);
+                    setError('No templates available');
+                }
+            } catch (err) {
+                console.error('Error fetching templates:', err);
+                setError('Failed to load templates');
+                // Fallback to hardcoded templates
+                setTemplates([
+                    {
+                        id: 'lil-yachty.mp4',
+                        name: 'Lil Yachty Template',
+                    },
+                    {
+                        id: 'psy.mp4',
+                        name: 'PSY Entrance',
+                    }
+                ]);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        fetchTemplates();
+    }, []);
+
+    if (loading) {
+        return <div className="meme-selector"><p>Loading templates...</p></div>;
+    }
+
     return (
         <div className="meme-selector">
             <h2>Step 1: Choose a Meme Template</h2>
+            {error && <p className="error-message">{error}</p>}
             <div className="meme-options">
-                {memeTemplates.map((template) => (
+                {templates.map((template) => (
                     <div
                         key={template.id}
                         className={`meme-option ${selectedMeme === template.id ? 'selected' : ''}`}
@@ -35,7 +78,6 @@ const MemeSelector = ({ onSelect, selectedMeme }) => {
                         </div>
                         <div className="meme-info">
                             <h3>{template.name}</h3>
-                            <p>{template.description}</p>
                         </div>
                     </div>
                 ))}

@@ -1,111 +1,120 @@
-# Video Meme Generator
+# Video Meme Generator with Segmind AI
 
-A tool for creating and sharing video memes easily.
-
-## Overview
-
-Video Meme Generator is a web application that allows users to create, edit, and share video memes. This tool simplifies the process of adding your face to popular meme videos to create engaging and shareable content.
+A powerful application for creating interactive video memes with realistic animation using Segmind, an advanced AI video generation technology.
 
 ## Features
 
-- Choose from popular meme templates (Jensen Huang or PSY entrance)
-- Upload your face image
-- Automatic face replacement in videos
-- Download and share your custom memes
+- **Realistic AI Video Generation**: Utilizes Segmind's state-of-the-art AI for high-quality video generation
+- **Multiple Meme Templates**: Choose from popular meme templates (Lil Yachty, PSY)
+- **Simple Interface**: Easy-to-use interface for uploading images and generating memes
+- **Download & Share**: Easily download and share your creations
+- **Fallback Mechanisms**: Automatic fallback to basic video processing if AI is unavailable
 
-## Project Structure
+## Architecture
 
-```
-video-meme/
-├── client/                 # React frontend
-│   ├── src/
-│   │   ├── components/     # React components
-│   │   ├── assets/         # Static assets
-│   │   └── ...
-├── server/                 # Node.js backend
-│   ├── assets/             # Template videos and images
-│   ├── uploads/            # User uploaded files
-│   ├── public/             # Publicly accessible files
-│   └── index.js            # Server entry point
-└── package.json            # Root package.json
-```
+This application consists of:
 
-## Installation
+- **Frontend**: React-based client for user interactions
+- **Backend**: Node.js/Express server for processing and video generation
+- **Segmind Integration**: API integration with Segmind's video generation service
+- **Fallback Mechanism**: Basic ffmpeg overlay as a reliable fallback
 
-```bash
-# Clone the repository
-git clone https://github.com/sergiopesch/video-meme.git
+## Setup
 
-# Navigate to the project directory
-cd video-meme
+### Prerequisites
 
-# Install all dependencies (root, client, and server)
-npm run install-all
-```
+- Node.js 16+ and npm
+- ffmpeg (required for video processing)
 
-## Usage
+### Installation
 
-### Development Mode
+1. Clone the repository:
+   ```
+   git clone https://github.com/yourusername/video-meme.git
+   cd video-meme
+   ```
 
-```bash
-# Run both client and server in development mode
-npm run dev
-```
+2. Install dependencies:
+   ```
+   npm run install-all
+   ```
 
-This will start:
-- The React development server on http://localhost:5173
-- The backend API server on http://localhost:5000
+3. Set up the Segmind API key (optional but recommended):
+   - Get your API key from [Segmind](https://segmind.com)
+   - Create a `.env` file in the server directory based on `.env.example`:
+     ```
+     SEGMIND_API_KEY=your_segmind_api_key_here
+     ```
 
-### Production Mode
+4. Start the development server:
+   ```
+   npm run dev
+   ```
 
-```bash
-# Build the client and start the production server
-npm run prod
-```
+5. Open your browser and navigate to `http://localhost:5173`
 
-## How It Works
+## Using Segmind for Video Generation
 
-1. **Select a Meme Template**: Choose between Lil Yachty walking onto stage or PSY making a grand entrance.
-2. **Upload Your Face**: Upload a clear image of your face.
-3. **Generate Meme**: Our server processes the video, replacing the original face with yours.
-4. **Download & Share**: Download your custom meme or share it directly to social media.
+This application is set up to use Segmind AI for advanced video generation. Segmind is a cutting-edge AI model developed by Alibaba that specializes in:
 
-## Technical Implementation
+- Image-to-Video generation (primarily used in this app)
+- Text-to-Video generation
+- Video editing and enhancement
 
-The application uses:
-- React for the frontend UI
-- Express.js for the backend API
-- face-api.js for face detection and tracking
-- FFmpeg for video processing
+### How It Works
 
-In a full implementation, the face replacement would use computer vision techniques to:
-1. Detect faces in the user-uploaded image
-2. Track faces in the template video
-3. Replace the face in the video with the user's face
-4. Process the video and return it to the client
+1. **API Integration**: When enabled, the app communicates with the Segmind API service
+2. **Image Processing**: Your uploaded image is processed by Segmind's I2V-14B-720P model
+3. **Motion Synthesis**: The AI generates natural movement based on the meme template context
+4. **Full-Body Replacement**: Unlike simple face swaps, Segmind can generate full-body motion
+5. **High Resolution Output**: Outputs videos at 720p resolution with realistic motion
 
-## Requirements
+### Setting Up Your API Key
 
-- Node.js (v14 or higher)
-- Modern web browser
-- FFmpeg for video processing
+The Segmind API requires an API key for access. To obtain one:
+
+1. Visit [Segmind](https://segmind.com)
+2. Sign up for an account and purchase API credits
+3. Copy your API key and add it to the `.env` file in the server directory:
+   ```
+   SEGMIND_API_KEY=your_segmind_api_key_here
+   ```
+4. Restart the server if it's already running
+
+### Fallback Mechanisms
+
+If Segmind is not available (no API key or service errors), the application will try:
+
+1. **Basic ffmpeg overlay**: Simple image overlay as a last resort
+
+## Using the Application
+
+1. **Select a Template**: Choose between Lil Yachty or PSY templates
+2. **Upload Your Image**: Upload an image containing a face (preferably a headshot)
+3. **Generate Meme**: Click the "Generate Meme" button
+4. **Download or Share**: Once the meme is generated, you can download it or share it
+
+## Troubleshooting
+
+- **"Failed to generate meme"**: Check if the Segmind API key is correctly configured
+- **Slow video generation**: Segmind processing can take time (30 seconds to 2 minutes typically)
+- **Installation issues**: Ensure all dependencies are installed, including ffmpeg
+
+## API Endpoints
+
+- `POST /api/generate-meme`: Generate a meme with the provided image and template
+- `GET /api/meme-templates`: List available meme templates
+- `GET /api/segmind-status`: Check if Segmind API is configured
 
 ## Contributing
 
 Contributions are welcome! Please feel free to submit a Pull Request.
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Contact
+## Acknowledgments
 
-Sergio Peschiera - [@sergiopesch](https://github.com/sergiopesch)
-
-Project Link: [https://github.com/sergiopesch/video-meme](https://github.com/sergiopesch/video-meme)
+- Segmind by Alibaba Cloud
+- All original meme creators and communities

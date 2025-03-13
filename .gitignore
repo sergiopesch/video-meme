@@ -19,6 +19,7 @@ node_modules/
 .env.test.local
 .env.production.local
 .env*.local
+server/.env
 
 # Debug logs
 npm-debug.log*
@@ -110,3 +111,14 @@ pids
 
 # Cursor specific files
 .cursor/
+
+# Generated videos
+public/memes/
+public/templates/
+
+# Embedded git repositories
+server/facefusion/
+server/simswap/
+
+# Optional: keep env.example
+!server/.env.example
