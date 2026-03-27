@@ -216,7 +216,7 @@ function App() {
           <span className="eyebrow">Deterministic render pipeline</span>
           <h1>Video Meme Editor</h1>
           <p>
-            Upload an image or short clip, or paste a direct media URL, then drop in captions, trim the moment, and render a shareable MP4.
+            Upload an image or short clip, or paste a direct media or YouTube URL, then drop in captions, trim the moment, and render a shareable MP4.
           </p>
         </div>
       </header>

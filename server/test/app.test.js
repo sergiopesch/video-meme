@@ -5,7 +5,7 @@ const path = require('path');
 const http = require('http');
 const { once } = require('events');
 const { createApp } = require('../src/app');
-const { createTempHarness, createSampleImage } = require('../test-support/helpers');
+const { createTempHarness, createSampleImage, createSampleVideo } = require('../test-support/helpers');
 
 async function startServer(server) {
   server.listen(0);
@@ -121,6 +121,84 @@ test('API can fetch a direct media URL before rendering', async () => {
     const renderPayload = await renderResponse.json();
     assert.equal(renderPayload.render.inputType, 'image');
     assert.equal(renderPayload.render.durationSeconds, 2);
+
+    const uploadsEntries = await fs.readdir(harness.env.paths.uploadsDir);
+    assert.equal(uploadsEntries.some((entry) => entry.startsWith('remote-')), false);
+  } finally {
+    await stopServer(apiServer);
+    await stopServer(remoteServer);
+    await harness.cleanup();
+  }
+});
+
+test('API can ingest a bounded YouTube-style page URL before rendering', async () => {
+  const harness = await createTempHarness();
+  const app = createApp({ env: harness.env });
+  const apiServer = http.createServer(app);
+  const remoteServer = http.createServer(async (req, res) => {
+    if (req.url === '/fixture.mp4') {
+      const videoPath = path.join(harness.rootDir, 'youtube-fixture.mp4');
+      const videoBuffer = await fs.readFile(videoPath);
+      res.setHeader('content-type', 'video/mp4');
+      res.setHeader('content-length', String(videoBuffer.length));
+      res.end(videoBuffer);
+      return;
+    }
+
+    if (req.url === '/watch?v=demo') {
+      const streamUrl = `http://127.0.0.1:${remoteServer.address().port}/fixture.mp4`;
+      const playerResponse = {
+        videoDetails: {
+          title: 'Bounded YouTube Fixture',
+        },
+        streamingData: {
+          formats: [
+            {
+              mimeType: 'video/mp4; codecs="avc1.4d401e, mp4a.40.2"',
+              url: streamUrl,
+              qualityLabel: '360p',
+              height: 360,
+            },
+          ],
+        },
+      };
+
+      res.setHeader('content-type', 'text/html; charset=utf-8');
+      res.end(`<!doctype html><html><body><script>var ytInitialPlayerResponse = ${JSON.stringify(playerResponse)};</script></body></html>`);
+      return;
+    }
+
+    res.statusCode = 404;
+    res.end('not found');
+  });
+
+  try {
+    const videoPath = await createSampleVideo(path.join(harness.rootDir, 'youtube-fixture.mp4'));
+    assert.ok(videoPath);
+
+    const apiPort = await startServer(apiServer);
+    const remotePort = await startServer(remoteServer);
+    const apiBaseUrl = `http://127.0.0.1:${apiPort}`;
+    const mediaUrl = `http://127.0.0.1:${remotePort}/watch?v=demo`;
+
+    const formData = new FormData();
+    formData.append('presetId', 'caption-punch');
+    formData.append('topText', 'YOUTUBE PAGE');
+    formData.append('caption', 'Bounded import path');
+    formData.append('durationSeconds', '1.5');
+    formData.append('startSeconds', '0.5');
+    formData.append('mediaUrl', mediaUrl);
+
+    const renderResponse = await fetch(`${apiBaseUrl}/api/renders`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    assert.equal(renderResponse.status, 201);
+    const renderPayload = await renderResponse.json();
+    assert.equal(renderPayload.render.inputType, 'video');
+    assert.ok(renderPayload.render.sourceDurationSeconds >= 2.9);
+    assert.equal(renderPayload.render.durationSeconds, 1.5);
 
     const uploadsEntries = await fs.readdir(harness.env.paths.uploadsDir);
     assert.equal(uploadsEntries.some((entry) => entry.startsWith('remote-')), false);

@@ -4,7 +4,7 @@ A deterministic meme editor that turns an uploaded image or short video clip int
 
 This repo has been refocused away from AI generation. The product direction now starts with dependable editing and rendering:
 
-- upload an **image** or **short video clip**, or paste a **direct media URL**
+- upload an **image** or **short video clip**, or paste a **direct media URL** or **YouTube page URL**
 - choose a **preset/template**
 - add **top text, bottom text, and/or caption text**
 - trim **video** input with start + duration controls
@@ -23,6 +23,7 @@ This repo has been refocused away from AI generation. The product direction now 
 - preset-first meme editor UI
 - image/video upload with local preview
 - direct image/video URL ingestion for remotely hosted assets
+- bounded YouTube page ingestion when the page exposes a directly downloadable stream URL
 - caption inputs driven by preset metadata
 - trim controls for video sources
 - render preview with download/copy-link actions
@@ -110,7 +111,7 @@ Returns structured preset metadata.
 Multipart form-data fields:
 
 - `media` — image or video file
-- `mediaUrl` — direct image/video URL when you want the server to fetch the source asset
+- `mediaUrl` — direct image/video URL or a supported YouTube page URL when you want the server to fetch the source asset
 - `presetId`
 - `topText`
 - `bottomText`
@@ -136,6 +137,12 @@ Response shape:
 }
 ```
 
+### YouTube ingestion note
+
+This slice supports a bounded YouTube import path: if the fetched page exposes a directly downloadable video stream URL in the page payload, the server can ingest it and continue through the normal FFmpeg render flow.
+
+If the page only exposes ciphered/signature-protected streams, the API will reject it honestly and ask for a direct media URL or an uploaded clip instead.
+
 ## Verification
 
 Useful commands:
@@ -150,7 +157,7 @@ npm run build
 
 Not implemented yet:
 
-- YouTube page ingestion
+- full YouTube signature-decipher support for pages that do not expose a direct downloadable stream
 - a large preset marketplace/catalog
 - timeline editing beyond start + duration trim
 - sticker layers, audio track editing, or multi-scene composition
