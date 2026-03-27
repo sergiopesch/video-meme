@@ -29,6 +29,7 @@ This repo is a minimal GIF remix tool:
 - a single caption-focused editing flow
 - remix flow that masks common top/bottom meme text zones before applying replacement copy
 - automatic short GIF duration defaults for video sources
+- pre-render interactive preview where text can be dragged into place before generation
 - GIF preview with download/copy-link actions and native mobile share when available
 - API base URL helper plus Vite proxy config so the client no longer hardcodes `localhost`
 
@@ -69,6 +70,7 @@ The current product uses two editing profiles:
 
 - top + bottom replacement text fields
 - automatic masking of common top/bottom text zones
+- replacement text auto-formatted to classic uppercase meme styling
 - GIF-safe duration limits
 - image and video inputs
 
@@ -160,6 +162,7 @@ Multipart form-data fields:
 - `topText`
 - `bottomText`
 - `caption`
+- `textLayout` (optional JSON map of slot IDs to normalized `{ x, y }` anchors, 0..1)
 - `startSeconds` (video only)
 - `durationSeconds`
 

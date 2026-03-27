@@ -84,6 +84,7 @@ const presetRegistry = [
         label: 'Top text',
         placeholder: 'same joke, your own words',
         maxLength: 80,
+        maxLines: 2,
         position: 'top',
       },
       {
@@ -91,6 +92,7 @@ const presetRegistry = [
         label: 'Bottom text',
         placeholder: 'new punchline',
         maxLength: 80,
+        maxLines: 2,
         position: 'bottom',
       },
     ],
@@ -100,6 +102,12 @@ const presetRegistry = [
       strokeColor: 'black',
       strokeWidth: 4,
       boxMode: 'none',
+      textTransform: 'uppercase',
+      maxTextWidthRatio: 0.92,
+      minFontScale: 0.048,
+      topOffsetRatio: 0.05,
+      bottomOffsetRatio: 0.05,
+      lineSpacing: 3,
     },
   },
 ];

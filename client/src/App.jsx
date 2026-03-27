@@ -18,6 +18,18 @@ const loadingHints = [
   'Finishing the export…',
 ];
 
+function getDefaultAnchor(position) {
+  if (position === 'top') {
+    return { x: 0.5, y: 0.14 };
+  }
+
+  if (position === 'bottom') {
+    return { x: 0.5, y: 0.86 };
+  }
+
+  return { x: 0.5, y: 0.6 };
+}
+
 function App() {
   const [presets, setPresets] = useState([]);
   const [featuredGifs, setFeaturedGifs] = useState([]);
@@ -29,6 +41,7 @@ function App() {
     bottomText: '',
     caption: '',
   });
+  const [textLayout, setTextLayout] = useState({});
   const [renderResult, setRenderResult] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -114,6 +127,22 @@ function App() {
   }, [editorMode]);
 
   useEffect(() => {
+    if (!selectedPreset?.textSlots?.length) {
+      return;
+    }
+
+    setTextLayout((current) => {
+      const next = {};
+
+      for (const slot of selectedPreset.textSlots) {
+        next[slot.id] = current[slot.id] || getDefaultAnchor(slot.position);
+      }
+
+      return next;
+    });
+  }, [selectedPreset]);
+
+  useEffect(() => {
     return () => {
       if (media.file && media.previewUrl && media.previewUrl.startsWith('blob:')) {
         URL.revokeObjectURL(media.previewUrl);
@@ -149,6 +178,16 @@ function App() {
     setRenderResult(null);
   };
 
+  const handleLayoutChange = (slotId, nextPosition) => {
+    setTextLayout((current) => ({
+      ...current,
+      [slotId]: nextPosition,
+    }));
+    setRenderResult(null);
+  };
+
+  const activeTextSlots = selectedPreset?.textSlots || [];
+
   const renderMeme = async () => {
     if (!selectedPreset || (!media.file && !media.mediaUrl)) {
       setError('Pick a GIF or upload something first.');
@@ -163,6 +202,19 @@ function App() {
     formData.append('topText', editor.topText);
     formData.append('bottomText', editor.bottomText);
     formData.append('caption', editor.caption);
+    formData.append(
+      'textLayout',
+      JSON.stringify(
+        activeTextSlots.reduce((layout, slot) => {
+          const anchoredPosition = textLayout[slot.id];
+          if (anchoredPosition) {
+            layout[slot.id] = anchoredPosition;
+          }
+
+          return layout;
+        }, {}),
+      ),
+    );
 
     if (media.file) {
       formData.append('media', media.file);
@@ -188,8 +240,6 @@ function App() {
       setIsLoading(false);
     }
   };
-
-  const activeTextSlots = selectedPreset?.textSlots || [];
 
   return (
     <div className="app-shell one-page">
@@ -229,7 +279,7 @@ function App() {
 
               <p className="support-copy mode-summary">
                 {editorMode === EDITOR_MODES.REMIX
-                  ? 'Remix mode covers common top/bottom text zones, then lays in your own copy.'
+                  ? 'Remix mode removes common top/bottom text and replaces it in the same classic meme style.'
                   : 'Caption mode keeps the source visible and adds one strong caption.'}
               </p>
 
@@ -287,6 +337,11 @@ function App() {
             selectedPreset={selectedPreset}
             isLoading={isLoading}
             loadingMessage={activeLoadingHint}
+            sourceMedia={media}
+            textSlots={activeTextSlots}
+            textValues={editor}
+            textLayout={textLayout}
+            onTextLayoutChange={handleLayoutChange}
           />
         </section>
       </main>

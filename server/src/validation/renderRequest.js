@@ -32,6 +32,55 @@ function parseLegacySettings(rawSettings) {
   }
 }
 
+function parseJsonObject(rawValue, fieldName) {
+  if (!rawValue) {
+    return {};
+  }
+
+  if (typeof rawValue === 'object' && rawValue !== null) {
+    return rawValue;
+  }
+
+  if (typeof rawValue === 'string') {
+    try {
+      const parsedValue = JSON.parse(rawValue);
+      if (typeof parsedValue === 'object' && parsedValue !== null) {
+        return parsedValue;
+      }
+    } catch (_error) {
+      // handled below
+    }
+  }
+
+  throw createHttpError(400, `${fieldName} must be a valid JSON object when provided.`);
+}
+
+function normalizeTextLayout(rawLayout, slotIds) {
+  const parsedLayout = parseJsonObject(rawLayout, 'textLayout');
+  const normalizedLayout = {};
+
+  for (const slotId of slotIds) {
+    const entry = parsedLayout?.[slotId];
+    if (!entry || typeof entry !== 'object') {
+      continue;
+    }
+
+    const x = Number(entry.x);
+    const y = Number(entry.y);
+
+    if (!Number.isFinite(x) || !Number.isFinite(y)) {
+      continue;
+    }
+
+    normalizedLayout[slotId] = {
+      x: clamp(x, 0.05, 0.95),
+      y: clamp(y, 0.05, 0.95),
+    };
+  }
+
+  return normalizedLayout;
+}
+
 function inferInputType(file) {
   if (!file) {
     return null;
@@ -103,6 +152,10 @@ function normalizeRenderRequest({ body, file }) {
     body.durationSeconds ?? legacySettings.durationSeconds,
     preset.trim.defaultDurationSeconds,
   );
+  const textLayout = normalizeTextLayout(
+    body.textLayout ?? legacySettings.textLayout,
+    preset.textSlots.map((slot) => slot.id),
+  );
 
   return {
     preset,
@@ -114,6 +167,7 @@ function normalizeRenderRequest({ body, file }) {
     topText,
     bottomText,
     caption,
+    textLayout,
     startSeconds: clamp(requestedStart, preset.trim.minStartSeconds, Number.MAX_SAFE_INTEGER),
     durationSeconds: clamp(
       requestedDuration,

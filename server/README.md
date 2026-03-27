@@ -5,6 +5,7 @@ Express API for deterministic meme rendering.
 ## Responsibilities
 - accept image/video uploads
 - normalize preset + caption + trim input
+- normalize optional text anchor coordinates from the preview composer
 - run FFmpeg renders
 - expose preset metadata
 - serve rendered GIF output files

@@ -19,6 +19,17 @@ function normalizeCleanupRatio(value, fallback = 0.2) {
   return clamp(parsedValue, 0.05, 0.45);
 }
 
+function normalizeWhitespace(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim();
+}
+
+function buildAnchoredAxisExpression({ axis, ratio }) {
+  const full = axis === 'x' ? 'w' : 'h';
+  const text = axis === 'x' ? 'text_w' : 'text_h';
+
+  return `max(0\\,min(${full}-${text}\\,(${full}*${formatNumber(ratio)})-(${text}/2)))`;
+}
+
 class RenderService {
   constructor(env) {
     this.env = env;
@@ -76,6 +87,7 @@ class RenderService {
             bottomText: prepared.bottomText,
             caption: prepared.caption,
           },
+          textLayout: prepared.textLayout,
         },
       };
     } catch (error) {
@@ -132,6 +144,7 @@ class RenderService {
       bottomText,
       caption,
       durationSeconds,
+      textLayout,
     } = prepared;
     const exportProfile = preset.export || {};
 
@@ -161,6 +174,7 @@ class RenderService {
         preset,
         slotId: overlay.slotId,
         text: overlay.text,
+        textLayout,
         jobDir,
       });
 
@@ -179,20 +193,39 @@ class RenderService {
     ].join(';');
   }
 
-  async createDrawtextFilter({ preset, slotId, text, jobDir }) {
+  async createDrawtextFilter({ preset, slotId, text, textLayout, jobDir }) {
     const slot = preset.textSlots.find((entry) => entry.id === slotId);
 
     if (!slot) {
       return null;
     }
 
-    const textFilePath = path.join(jobDir, `${slotId}.txt`);
-    await fs.writeFile(textFilePath, text, 'utf8');
+    const formattedText = this.formatOverlayText({
+      text,
+      preset,
+      slot,
+    });
 
-    const fontSize = Math.round(preset.output.width * preset.styling.fontScale);
+    if (!formattedText) {
+      return null;
+    }
+
+    const fontSize = this.resolveFontSize({
+      text: formattedText,
+      preset,
+    });
+    const textFilePath = path.join(jobDir, `${slotId}.txt`);
+    await fs.writeFile(textFilePath, formattedText, 'utf8');
+
     const escapedFontPath = escapeFilterPath(this.env.fontPath);
     const escapedTextPath = escapeFilterPath(textFilePath);
-    const y = this.resolveYExpression(slot.position, preset.output.height);
+    const positionExpressions = this.resolvePositionExpressions({
+      slot,
+      preset,
+      textLayout,
+      slotId,
+    });
+    const lineSpacing = Number.isFinite(preset.styling.lineSpacing) ? preset.styling.lineSpacing : 8;
     const base = [
       `drawtext=fontfile='${escapedFontPath}'`,
       `textfile='${escapedTextPath}'`,
@@ -200,9 +233,9 @@ class RenderService {
       `fontsize=${fontSize}`,
       `bordercolor=${preset.styling.strokeColor}`,
       `borderw=${preset.styling.strokeWidth}`,
-      "x=(w-text_w)/2",
-      `y=${y}`,
-      'line_spacing=8',
+      `x=${positionExpressions.x}`,
+      `y=${positionExpressions.y}`,
+      `line_spacing=${lineSpacing}`,
     ];
 
     if (slot.position === 'caption' && preset.styling.boxMode === 'caption-card') {
@@ -212,6 +245,128 @@ class RenderService {
     }
 
     return base.join(':');
+  }
+
+  formatOverlayText({ text, preset, slot }) {
+    let normalizedText = normalizeWhitespace(text);
+
+    if (!normalizedText) {
+      return '';
+    }
+
+    if (preset.styling.textTransform === 'uppercase') {
+      normalizedText = normalizedText.toUpperCase();
+    }
+
+    const baseFontSize = Math.round(preset.output.width * preset.styling.fontScale);
+    const wrapped = this.wrapOverlayText({
+      text: normalizedText,
+      preset,
+      slot,
+      fontSize: baseFontSize,
+    });
+    const fittedFontSize = this.resolveFontSize({
+      text: wrapped,
+      preset,
+    });
+
+    return this.wrapOverlayText({
+      text: wrapped,
+      preset,
+      slot,
+      fontSize: fittedFontSize,
+    });
+  }
+
+  resolveFontSize({ text, preset }) {
+    const styling = preset.styling || {};
+    const baseFontSize = Math.round(preset.output.width * (styling.fontScale || 0.07));
+    const minFontSize = Math.round(preset.output.width * (styling.minFontScale || 0.045));
+    const maxTextWidth = Math.round(preset.output.width * (styling.maxTextWidthRatio || 0.92));
+    const longestLineLength = Math.max(
+      ...String(text || '')
+        .split('\n')
+        .map((line) => line.length),
+      0,
+    );
+
+    if (!longestLineLength) {
+      return baseFontSize;
+    }
+
+    const approximateLineWidth = longestLineLength * baseFontSize * 0.62;
+    if (approximateLineWidth <= maxTextWidth) {
+      return baseFontSize;
+    }
+
+    const shrinkFactor = maxTextWidth / approximateLineWidth;
+    return Math.max(minFontSize, Math.floor(baseFontSize * shrinkFactor));
+  }
+
+  wrapOverlayText({ text, preset, slot, fontSize }) {
+    const maxTextWidth = Math.round(preset.output.width * (preset.styling.maxTextWidthRatio || 0.92));
+    const maxCharsPerLine = Math.max(8, Math.floor(maxTextWidth / (fontSize * 0.62)));
+    const maxLines = slot.maxLines || 2;
+    const words = normalizeWhitespace(text).split(' ').filter(Boolean);
+
+    if (!words.length) {
+      return '';
+    }
+
+    const lines = [];
+    let currentLine = '';
+
+    for (const word of words) {
+      const candidateLine = currentLine ? `${currentLine} ${word}` : word;
+      if (candidateLine.length <= maxCharsPerLine || !currentLine) {
+        currentLine = candidateLine;
+        continue;
+      }
+
+      lines.push(currentLine);
+      currentLine = word;
+
+      if (lines.length === maxLines - 1) {
+        break;
+      }
+    }
+
+    if (lines.length < maxLines && currentLine) {
+      lines.push(currentLine);
+    }
+
+    if (lines.length < words.length) {
+      const consumedWords = lines.join(' ').split(' ').filter(Boolean).length;
+      const remainingWords = words.slice(consumedWords).join(' ');
+      if (remainingWords) {
+        const lastIndex = Math.max(lines.length - 1, 0);
+        const mergedLastLine = `${lines[lastIndex] || ''} ${remainingWords}`.trim();
+        const withEllipsis = mergedLastLine.slice(0, Math.max(maxCharsPerLine - 1, 1)).trim();
+        lines[lastIndex] = `${withEllipsis}…`;
+      }
+    }
+
+    return lines.slice(0, maxLines).join('\n');
+  }
+
+  resolvePositionExpressions({ slot, preset, textLayout, slotId }) {
+    const anchoredPosition = textLayout?.[slotId];
+
+    if (
+      anchoredPosition &&
+      Number.isFinite(anchoredPosition.x) &&
+      Number.isFinite(anchoredPosition.y)
+    ) {
+      return {
+        x: buildAnchoredAxisExpression({ axis: 'x', ratio: anchoredPosition.x }),
+        y: buildAnchoredAxisExpression({ axis: 'y', ratio: anchoredPosition.y }),
+      };
+    }
+
+    return {
+      x: '(w-text_w)/2',
+      y: this.resolveYExpression(slot.position, preset.output.height, preset),
+    };
   }
 
   createCleanupFilters(preset) {
@@ -233,12 +388,15 @@ class RenderService {
       .filter(Boolean);
   }
 
-  resolveYExpression(position, height) {
+  resolveYExpression(position, height, preset) {
+    const topOffsetRatio = Number.isFinite(preset?.styling?.topOffsetRatio) ? preset.styling.topOffsetRatio : 0.08;
+    const bottomOffsetRatio = Number.isFinite(preset?.styling?.bottomOffsetRatio) ? preset.styling.bottomOffsetRatio : 0.08;
+
     switch (position) {
       case 'top':
-        return `${Math.round(height * 0.08)}`;
+        return `${Math.round(height * topOffsetRatio)}`;
       case 'bottom':
-        return `h-text_h-${Math.round(height * 0.08)}`;
+        return `h-text_h-${Math.round(height * bottomOffsetRatio)}`;
       case 'caption':
         return `(h-text_h)/2+${Math.round(height * 0.18)}`;
       default:

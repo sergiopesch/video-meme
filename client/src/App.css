@@ -287,6 +287,72 @@ button {
   object-fit: contain;
 }
 
+.preview-composer {
+  display: grid;
+  gap: 10px;
+}
+
+.preview-guide {
+  margin: 0;
+}
+
+.preview-stage-frame {
+  position: relative;
+  width: 100%;
+  min-height: 280px;
+  border-radius: 16px;
+  overflow: hidden;
+  border: 1px solid #2f2f2f;
+  background: #000;
+}
+
+.preview-source-media {
+  display: block;
+  width: 100%;
+  min-height: 280px;
+  max-height: 420px;
+  object-fit: contain;
+  background: #000;
+}
+
+.preview-overlay-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.preview-text-chip {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  max-width: 90%;
+  border-radius: 12px;
+  border: 1px dashed rgba(255, 255, 255, 0.8);
+  background: rgba(0, 0, 0, 0.45);
+  color: #fff;
+  padding: 5px 10px;
+  font-size: clamp(0.8rem, 2.8vw, 1rem);
+  font-weight: 800;
+  text-transform: uppercase;
+  text-align: center;
+  line-height: 1.15;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+  pointer-events: auto;
+}
+
+.preview-text-chip.placeholder {
+  text-transform: none;
+  font-weight: 600;
+  color: #d6d6d6;
+  background: rgba(0, 0, 0, 0.58);
+}
+
+.preview-text-chip.dragging {
+  cursor: grabbing;
+  border-style: solid;
+}
+
 .upload-actions,
 .result-actions {
   display: flex;
@@ -320,6 +386,11 @@ button {
   .upload-actions .secondary-button,
   .result-actions button {
     width: auto;
+  }
+
+  .preview-stage-frame,
+  .preview-source-media {
+    min-height: 320px;
   }
 }
 

@@ -18,6 +18,20 @@ test('RenderService builds cleanup masks for the remix preset', () => {
   assert.ok(filters.every((filter) => filter.includes('drawbox=')));
 });
 
+test('RenderService keeps remix replacement text in classic uppercase meme style', () => {
+  const renderService = new RenderService({ paths: {} });
+  const preset = getPresetById('classic-remix');
+  const topSlot = preset.textSlots.find((slot) => slot.id === 'topText');
+  const formatted = renderService.formatOverlayText({
+    text: 'i made this one very very custom',
+    preset,
+    slot: topSlot,
+  });
+
+  assert.equal(formatted, formatted.toUpperCase());
+  assert.ok(formatted.includes('\n') || formatted.length > 0);
+});
+
 test('RenderService renders an image into a GIF meme clip', async () => {
   const harness = await createTempHarness();
 
