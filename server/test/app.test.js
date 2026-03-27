@@ -14,12 +14,21 @@ async function startServer(server) {
 }
 
 async function stopServer(server) {
+  if (!server?.listening) {
+    return;
+  }
+
   if (typeof server.closeIdleConnections === 'function') {
     server.closeIdleConnections();
   }
 
   await new Promise((resolve, reject) => {
     server.close((error) => {
+      if (error?.code === 'ERR_SERVER_NOT_RUNNING') {
+        resolve();
+        return;
+      }
+
       if (error) {
         reject(error);
         return;
