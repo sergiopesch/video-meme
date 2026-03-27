@@ -78,7 +78,7 @@ const ImageUploader = ({ media, onChange, onVideoMetadata }) => {
         <h2>2. Add source media</h2>
         <p>
           Upload a still image or short video clip, paste a direct media URL, or drop in a YouTube page URL for the
-          bounded import flow.
+          bounded import flow. Everything exports as a short, no-audio GIF tuned for phones.
         </p>
       </div>
 
@@ -133,7 +133,7 @@ const ImageUploader = ({ media, onChange, onVideoMetadata }) => {
           />
           <small>
             Direct image/video files work best. YouTube support is intentionally bounded and only accepts pages that
-            expose a directly downloadable stream.
+            expose a directly downloadable stream. The final export is still a mobile-share GIF.
           </small>
         </label>
         <div className="url-actions">

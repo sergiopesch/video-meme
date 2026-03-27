@@ -8,10 +8,9 @@ const {
   createTempHarness,
   createSampleImage,
   createSampleVideo,
-  createUploadedFile,
 } = require('../test-support/helpers');
 
-test('RenderService renders an image into an MP4 meme clip', async () => {
+test('RenderService renders an image into a GIF meme clip', async () => {
   const harness = await createTempHarness();
 
   try {
@@ -31,21 +30,25 @@ test('RenderService renders an image into an MP4 meme clip', async () => {
     });
 
     assert.equal(result.success, true);
+    assert.equal(result.format, 'gif');
+    assert.equal(result.mimeType, 'image/gif');
     assert.equal(result.render.inputType, 'image');
-    assert.match(result.outputUrl, /^\/output\/meme-.*\.mp4$/);
+    assert.equal(result.render.hasAudio, false);
+    assert.match(result.outputUrl, /^\/output\/meme-.*\.gif$/);
 
     const outputPath = path.join(harness.env.paths.outputDir, path.basename(result.outputUrl));
     const probe = await probeMedia(harness.env.ffprobeBin, outputPath);
     const duration = Number(probe.format.duration);
 
     assert.ok(duration >= 2.8 && duration <= 3.2, `unexpected duration ${duration}`);
-    assert.equal(probe.streams.find((stream) => stream.codec_type === 'video').width, 1080);
+    assert.equal(probe.streams.find((stream) => stream.codec_type === 'video').width, 480);
+    assert.equal(probe.streams.some((stream) => stream.codec_type === 'audio'), false);
   } finally {
     await harness.cleanup();
   }
 });
 
-test('RenderService trims video input and keeps it within the requested range', async () => {
+test('RenderService trims video input into a bounded GIF and strips audio', async () => {
   const harness = await createTempHarness();
 
   try {
@@ -65,7 +68,10 @@ test('RenderService trims video input and keeps it within the requested range', 
     });
 
     assert.equal(result.success, true);
+    assert.equal(result.format, 'gif');
+    assert.equal(result.mimeType, 'image/gif');
     assert.equal(result.render.inputType, 'video');
+    assert.equal(result.render.hasAudio, false);
     assert.ok(result.render.sourceDurationSeconds >= 2.9);
 
     const outputPath = path.join(harness.env.paths.outputDir, path.basename(result.outputUrl));
@@ -73,7 +79,8 @@ test('RenderService trims video input and keeps it within the requested range', 
     const duration = Number(probe.format.duration);
 
     assert.ok(duration >= 1.3 && duration <= 1.8, `unexpected duration ${duration}`);
-    assert.equal(probe.streams.find((stream) => stream.codec_type === 'video').width, 1280);
+    assert.equal(probe.streams.find((stream) => stream.codec_type === 'video').width, 480);
+    assert.equal(probe.streams.some((stream) => stream.codec_type === 'audio'), false);
   } finally {
     await harness.cleanup();
   }

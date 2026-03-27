@@ -1,6 +1,5 @@
 const fs = require('fs/promises');
 const path = require('path');
-const os = require('os');
 const { randomUUID } = require('crypto');
 const { clamp } = require('../validation/renderRequest');
 const { createHttpError } = require('../utils/errors');
@@ -19,12 +18,14 @@ class RenderService {
   async render(request) {
     const jobId = randomUUID();
     const jobDir = await fs.mkdtemp(path.join(this.env.paths.jobsDir, `${jobId}-`));
-    const outputFileName = `meme-${jobId}.mp4`;
-    const outputPath = path.join(this.env.paths.outputDir, outputFileName);
 
     try {
       const prepared = await this.prepareRequest(request);
-      const filter = await this.buildFilter(prepared, jobDir);
+      const exportProfile = prepared.preset.export || {};
+      const extension = exportProfile.fileExtension || 'gif';
+      const outputFileName = `meme-${jobId}.${extension}`;
+      const outputPath = path.join(this.env.paths.outputDir, outputFileName);
+      const filter = await this.buildFilterGraph(prepared, jobDir);
       const ffmpegArgs = this.buildFfmpegArgs(prepared, filter, outputPath);
 
       await runFfmpeg(this.env.ffmpegBin, ffmpegArgs);
@@ -32,13 +33,25 @@ class RenderService {
       const outputStats = await fs.stat(outputPath);
       const outputProbe = await probeMedia(this.env.ffprobeBin, outputPath);
       const videoStream = outputProbe.streams.find((stream) => stream.codec_type === 'video') || {};
+      const hasAudio = outputProbe.streams.some((stream) => stream.codec_type === 'audio');
+      const outputUrl = `/output/${outputFileName}`;
 
       return {
         success: true,
-        outputUrl: `/output/${outputFileName}`,
-        url: `/output/${outputFileName}`,
+        outputUrl,
+        url: outputUrl,
+        fileName: outputFileName,
+        format: exportProfile.format || 'gif',
+        mimeType: exportProfile.mimeType || 'image/gif',
         method: 'ffmpeg',
         preset: prepared.preset,
+        output: {
+          url: outputUrl,
+          fileName: outputFileName,
+          format: exportProfile.format || 'gif',
+          mimeType: exportProfile.mimeType || 'image/gif',
+          hasAudio,
+        },
         render: {
           inputType: prepared.inputType,
           sourceDurationSeconds: prepared.sourceDurationSeconds,
@@ -46,7 +59,9 @@ class RenderService {
           durationSeconds: prepared.durationSeconds,
           width: videoStream.width || prepared.preset.output.width,
           height: videoStream.height || prepared.preset.output.height,
+          fps: prepared.preset.output.fps,
           sizeBytes: outputStats.size,
+          hasAudio,
           texts: {
             topText: prepared.topText,
             bottomText: prepared.bottomText,
@@ -59,7 +74,7 @@ class RenderService {
         throw error;
       }
 
-      throw createHttpError(500, 'Failed to render meme video.', error.message || error);
+      throw createHttpError(500, 'Failed to render meme GIF.', error.message || error);
     } finally {
       await removeDirIfExists(jobDir);
     }
@@ -101,19 +116,23 @@ class RenderService {
     };
   }
 
-  async buildFilter(prepared, jobDir) {
+  async buildFilterGraph(prepared, jobDir) {
     const {
       preset,
       topText,
       bottomText,
       caption,
+      durationSeconds,
     } = prepared;
+    const exportProfile = preset.export || {};
 
     const baseFilter = [
-      `scale=${preset.output.width}:${preset.output.height}:force_original_aspect_ratio=decrease`,
+      `fps=${preset.output.fps}`,
+      `scale=${preset.output.width}:${preset.output.height}:force_original_aspect_ratio=decrease:flags=lanczos`,
       `pad=${preset.output.width}:${preset.output.height}:(ow-iw)/2:(oh-ih)/2:color=black`,
       'setsar=1',
-      'format=yuv420p',
+      `trim=duration=${formatNumber(durationSeconds)}`,
+      'setpts=PTS-STARTPTS',
     ];
 
     const drawtextFilters = [];
@@ -140,7 +159,14 @@ class RenderService {
       }
     }
 
-    return [...baseFilter, ...drawtextFilters].join(',');
+    const baseChain = [...baseFilter, ...drawtextFilters].join(',');
+    const maxColors = exportProfile.maxColors || 128;
+
+    return [
+      `[0:v]${baseChain},split[gifbase][gifpalette]`,
+      `[gifpalette]palettegen=stats_mode=diff:max_colors=${maxColors}[palette]`,
+      '[gifbase][palette]paletteuse=dither=sierra2_4a:new=1[gifout]',
+    ].join(';');
   }
 
   async createDrawtextFilter({ preset, slotId, text, jobDir }) {
@@ -193,6 +219,7 @@ class RenderService {
 
   buildFfmpegArgs(prepared, filter, outputPath) {
     const { inputType, mediaPath, durationSeconds, startSeconds, preset } = prepared;
+    const exportProfile = preset.export || {};
 
     if (inputType === 'image') {
       return [
@@ -201,21 +228,17 @@ class RenderService {
         '1',
         '-framerate',
         String(preset.output.fps),
-        '-i',
-        mediaPath,
         '-t',
         formatNumber(durationSeconds),
-        '-vf',
+        '-i',
+        mediaPath,
+        '-filter_complex',
         filter,
-        '-r',
-        String(preset.output.fps),
+        '-map',
+        '[gifout]',
         '-an',
-        '-c:v',
-        'libx264',
-        '-pix_fmt',
-        'yuv420p',
-        '-movflags',
-        '+faststart',
+        '-loop',
+        String(exportProfile.loop ?? 0),
         outputPath,
       ];
     }
@@ -228,24 +251,13 @@ class RenderService {
       mediaPath,
       '-t',
       formatNumber(durationSeconds),
-      '-vf',
+      '-filter_complex',
       filter,
-      '-r',
-      String(preset.output.fps),
       '-map',
-      '0:v:0',
-      '-map',
-      '0:a?',
-      '-c:v',
-      'libx264',
-      '-c:a',
-      'aac',
-      '-b:a',
-      '128k',
-      '-pix_fmt',
-      'yuv420p',
-      '-movflags',
-      '+faststart',
+      '[gifout]',
+      '-an',
+      '-loop',
+      String(exportProfile.loop ?? 0),
       outputPath,
     ];
   }

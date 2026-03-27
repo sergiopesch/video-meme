@@ -1,6 +1,6 @@
-# Video Meme Editor
+# GIF Meme Editor
 
-A deterministic meme editor that turns an uploaded image or short video clip into a shareable MP4.
+A deterministic meme editor that turns an uploaded image or short video clip into a mobile-share GIF.
 
 This repo has been refocused away from AI generation. The product direction now starts with dependable editing and rendering:
 
@@ -8,15 +8,16 @@ This repo has been refocused away from AI generation. The product direction now 
 - choose a **preset/template**
 - add **top text, bottom text, and/or caption text**
 - trim **video** input with start + duration controls
-- render a short **MP4 meme video** with FFmpeg
+- render a short **GIF** with FFmpeg using an optimized palette pipeline
 
 ## What this slice delivers
 
 ### Backend
 - modular Express API instead of a single monolithic file
-- FFmpeg render pipeline for image-to-video and video-to-video meme rendering
+- FFmpeg render pipeline for image/video to GIF rendering
 - structured preset registry returned by the API
-- static output hosting for rendered MP4 files
+- explicit GIF export metadata in preset + render responses
+- static output hosting for rendered GIF files
 - legacy route aliases kept for the old `/generate-meme` and `/meme-templates` paths
 
 ### Frontend
@@ -25,8 +26,8 @@ This repo has been refocused away from AI generation. The product direction now 
 - direct image/video URL ingestion for remotely hosted assets
 - bounded YouTube page ingestion when the page exposes a directly downloadable stream URL
 - caption inputs driven by preset metadata
-- trim controls for video sources
-- render preview with download/copy-link actions
+- trim controls for short GIF-safe video windows
+- GIF preview with download/copy-link actions and native mobile share when available
 - API base URL helper plus Vite proxy config so the client no longer hardcodes `localhost`
 
 ### Tests
@@ -54,6 +55,7 @@ server/
 The preset system is now the foundation for a future template library. Each preset exposes:
 
 - output dimensions + fps
+- export format metadata
 - trim limits and default duration
 - supported input types
 - text slots and max lengths
@@ -61,9 +63,10 @@ The preset system is now the foundation for a future template library. Each pres
 
 Current presets are intentionally small and foundation-focused:
 
+- `story-stack`
+- `status-drop`
 - `classic-impact`
 - `caption-punch`
-- `story-stack`
 
 ## Running locally
 
@@ -124,15 +127,25 @@ Response shape:
 ```json
 {
   "success": true,
-  "outputUrl": "/output/meme-<id>.mp4",
+  "outputUrl": "/output/meme-<id>.gif",
+  "fileName": "meme-<id>.gif",
+  "format": "gif",
+  "mimeType": "image/gif",
   "preset": {
-    "id": "classic-impact"
+    "id": "story-stack"
+  },
+  "output": {
+    "format": "gif",
+    "mimeType": "image/gif",
+    "hasAudio": false
   },
   "render": {
     "inputType": "image",
     "durationSeconds": 4,
-    "width": 1080,
-    "height": 1080
+    "width": 360,
+    "height": 640,
+    "fps": 12,
+    "hasAudio": false
   }
 }
 ```

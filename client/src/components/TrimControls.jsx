@@ -17,7 +17,7 @@ const TrimControls = ({ visible, trim, onChange, presetTrim }) => {
     <section className="panel-section">
       <div className="section-heading">
         <h2>4. Trim the clip</h2>
-        <p>Choose one bounded export window from the source clip: where it starts and how long it runs.</p>
+        <p>Choose one short export window from the source clip. GIFs travel better on phones when the moment stays tight.</p>
       </div>
 
       <div className="trim-summary-card">
@@ -67,7 +67,7 @@ const TrimControls = ({ visible, trim, onChange, presetTrim }) => {
       ) : (
         <p className="support-copy">
           If the source length can be read in the browser, the sliders clamp against the actual clip. For bounded URL
-          imports without metadata, the server still applies the final trim guardrails.
+          imports without metadata, the server still applies the final short-GIF guardrails.
         </p>
       )}
 

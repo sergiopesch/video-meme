@@ -7,7 +7,7 @@ const MemeSelector = ({ presets, selectedPresetId, onSelect }) => {
     <section className="panel-section">
       <div className="section-heading">
         <h2>1. Choose a preset</h2>
-        <p>Presets define aspect ratio, output pacing, and caption treatment.</p>
+        <p>Presets define the mobile-share GIF shape, pacing, and caption treatment.</p>
       </div>
 
       <div className="preset-grid">

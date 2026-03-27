@@ -7,6 +7,7 @@ test('preset registry returns structured metadata for the editor', () => {
 
   assert.ok(presets.length >= 6);
   assert.equal(getDefaultPreset().id, presets[0].id);
+  assert.equal(getDefaultPreset().id, 'story-stack');
 
   for (const preset of presets) {
     assert.ok(preset.id);
@@ -18,9 +19,15 @@ test('preset registry returns structured metadata for the editor', () => {
     assert.ok(Array.isArray(preset.textSlots));
     assert.ok(preset.output.width > 0);
     assert.ok(preset.output.height > 0);
+    assert.ok(preset.output.width <= 480);
+    assert.ok(preset.output.height <= 640);
+    assert.ok(preset.output.fps <= 12);
     assert.ok(preset.output.defaultDuration > 0);
     assert.ok(preset.output.maxDuration >= preset.output.defaultDuration);
     assert.ok(preset.trim.maxDurationSeconds >= preset.trim.defaultDurationSeconds);
+    assert.equal(preset.export?.format, 'gif');
+    assert.equal(preset.export?.mimeType, 'image/gif');
+    assert.equal(preset.export?.hasAudio, false);
 
     for (const slot of preset.textSlots) {
       assert.match(slot.id, /^(topText|bottomText|caption)$/);

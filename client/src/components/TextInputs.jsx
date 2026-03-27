@@ -7,7 +7,7 @@ const TextInputs = ({ slots, values, onChange }) => {
     <section className="panel-section">
       <div className="section-heading">
         <h2>3. Write the joke</h2>
-        <p>Keep it short. The render is deterministic; the punchline is still your job.</p>
+        <p>Keep it short and phone-readable. The render is deterministic; the punchline is still your job.</p>
       </div>
 
       <div className="field-grid">

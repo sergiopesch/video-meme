@@ -1,7 +1,7 @@
 {
   "name": "video-meme-server",
   "version": "2.0.0",
-  "description": "Backend API and FFmpeg render pipeline for the Video Meme Editor.",
+  "description": "Backend API and FFmpeg GIF render pipeline for the Video Meme Editor.",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",

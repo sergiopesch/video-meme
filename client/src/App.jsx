@@ -239,10 +239,11 @@ function App() {
     <div className="app-shell">
       <header className="hero">
         <div>
-          <span className="eyebrow">Deterministic render pipeline</span>
-          <h1>Video Meme Editor</h1>
+          <span className="eyebrow">Mobile-share GIF pipeline</span>
+          <h1>GIF Meme Editor</h1>
           <p>
-            Upload an image or short clip, or paste a direct media or YouTube URL, then drop in captions, trim the moment, and render a shareable MP4.
+            Upload an image or short clip, or paste a direct media or YouTube URL, then add captions, trim the beat,
+            and export an optimized GIF for phone sharing. No audio, no fake promises.
           </p>
         </div>
       </header>
@@ -283,16 +284,18 @@ function App() {
                   <div>
                     <span className="summary-label">Output</span>
                     <strong>
-                      {selectedPreset.output.width}×{selectedPreset.output.height} @ {selectedPreset.output.fps}fps
+                      {selectedPreset.export?.format?.toUpperCase() || 'GIF'} • {selectedPreset.output.width}×{selectedPreset.output.height}
                     </strong>
                   </div>
                   <div>
-                    <span className="summary-label">Default duration</span>
-                    <strong>{selectedPreset.trim.defaultDurationSeconds}s</strong>
+                    <span className="summary-label">Pacing</span>
+                    <strong>
+                      {selectedPreset.output.fps}fps • up to {selectedPreset.trim.maxDurationSeconds}s
+                    </strong>
                   </div>
                   <div>
-                    <span className="summary-label">Tags</span>
-                    <strong>{selectedPreset.tags.join(' • ')}</strong>
+                    <span className="summary-label">Audio</span>
+                    <strong>{selectedPreset.export?.hasAudio ? 'Included' : 'Removed for GIF export'}</strong>
                   </div>
                 </div>
               )}
@@ -303,7 +306,7 @@ function App() {
                 onClick={renderMeme}
                 disabled={isLoading || !selectedPreset || (!media.file && !media.mediaUrl)}
               >
-                {isLoading ? 'Rendering meme video…' : 'Render meme video'}
+                {isLoading ? 'Rendering mobile-share GIF…' : 'Render mobile-share GIF'}
               </button>
 
               {error && <p className="error-banner">{error}</p>}

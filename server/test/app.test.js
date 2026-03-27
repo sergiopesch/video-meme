@@ -44,9 +44,10 @@ test('API exposes presets and renders a meme through the HTTP boundary', async (
     const presetsPayload = await presetsResponse.json();
 
     assert.ok(Array.isArray(presetsPayload.presets));
-    assert.equal(presetsPayload.defaultPresetId, 'classic-impact');
+    assert.equal(presetsPayload.defaultPresetId, 'story-stack');
     assert.ok(presetsPayload.presets.every((preset) => preset.thumbnail?.src));
     assert.ok(presetsPayload.presets.some((preset) => preset.id === 'status-drop'));
+    assert.ok(presetsPayload.presets.every((preset) => preset.export?.format === 'gif'));
 
     const imagePath = await createSampleImage(path.join(harness.rootDir, 'request.png'));
     const imageBuffer = await fs.readFile(imagePath);
@@ -68,10 +69,13 @@ test('API exposes presets and renders a meme through the HTTP boundary', async (
 
     assert.equal(renderPayload.render.inputType, 'image');
     assert.equal(renderPayload.render.durationSeconds, 2);
+    assert.equal(renderPayload.format, 'gif');
+    assert.equal(renderPayload.mimeType, 'image/gif');
+    assert.equal(renderPayload.render.hasAudio, false);
 
-    const videoResponse = await fetch(`${baseUrl}${renderPayload.outputUrl}`);
-    assert.equal(videoResponse.status, 200);
-    assert.equal(videoResponse.headers.get('content-type'), 'video/mp4');
+    const gifResponse = await fetch(`${baseUrl}${renderPayload.outputUrl}`);
+    assert.equal(gifResponse.status, 200);
+    assert.equal(gifResponse.headers.get('content-type'), 'image/gif');
   } finally {
     await stopServer(server);
     await harness.cleanup();
@@ -121,6 +125,7 @@ test('API can fetch a direct media URL before rendering', async () => {
     const renderPayload = await renderResponse.json();
     assert.equal(renderPayload.render.inputType, 'image');
     assert.equal(renderPayload.render.durationSeconds, 2);
+    assert.equal(renderPayload.render.hasAudio, false);
 
     const uploadsEntries = await fs.readdir(harness.env.paths.uploadsDir);
     assert.equal(uploadsEntries.some((entry) => entry.startsWith('remote-')), false);
@@ -199,6 +204,7 @@ test('API can ingest a bounded YouTube-style page URL before rendering', async (
     assert.equal(renderPayload.render.inputType, 'video');
     assert.ok(renderPayload.render.sourceDurationSeconds >= 2.9);
     assert.equal(renderPayload.render.durationSeconds, 1.5);
+    assert.equal(renderPayload.render.hasAudio, false);
 
     const uploadsEntries = await fs.readdir(harness.env.paths.uploadsDir);
     assert.equal(uploadsEntries.some((entry) => entry.startsWith('remote-')), false);
