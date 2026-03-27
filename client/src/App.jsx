@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import './App.css';
-import MemeSelector from './components/MemeSelector';
+import GifSearch from './components/GifSearch';
 import ImageUploader from './components/ImageUploader';
 import MemePreview from './components/MemePreview';
 import TextInputs from './components/TextInputs';
 import TrimControls from './components/TrimControls';
 import { apiFetch } from './lib/api';
-import { buildTrimState, clamp, normalizeVideoTrim } from './lib/trim';
+import { buildTrimState, normalizeVideoTrim } from './lib/trim';
 
+const DEFAULT_PRESET_ID = 'caption-punch';
 const loadingHints = [
   'Waking up the editor…',
   'Rendering your GIF…',
@@ -16,7 +17,8 @@ const loadingHints = [
 
 function App() {
   const [presets, setPresets] = useState([]);
-  const [selectedPresetId, setSelectedPresetId] = useState('');
+  const [featuredGifs, setFeaturedGifs] = useState([]);
+  const [mediaSource, setMediaSource] = useState('search');
   const [media, setMedia] = useState({ file: null, mediaUrl: '', previewUrl: '', mediaType: '' });
   const [sourceDuration, setSourceDuration] = useState(null);
   const [editor, setEditor] = useState({
@@ -24,7 +26,7 @@ function App() {
     bottomText: '',
     caption: '',
     startSeconds: 0,
-    durationSeconds: 4,
+    durationSeconds: 3.5,
   });
   const [renderResult, setRenderResult] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -33,16 +35,9 @@ function App() {
   const [loadingHintIndex, setLoadingHintIndex] = useState(0);
 
   const selectedPreset = useMemo(
-    () => presets.find((preset) => preset.id === selectedPresetId) || null,
-    [presets, selectedPresetId],
+    () => presets.find((preset) => preset.id === DEFAULT_PRESET_ID) || null,
+    [presets],
   );
-  const isHostedEnvironment = useMemo(() => {
-    if (typeof window === 'undefined') {
-      return false;
-    }
-
-    return !['localhost', '127.0.0.1'].includes(window.location.hostname);
-  }, []);
   const activeLoadingHint = loadingHints[loadingHintIndex] || loadingHints[0];
 
   useEffect(() => {
@@ -53,7 +48,7 @@ function App() {
 
     const intervalId = window.setInterval(() => {
       setLoadingHintIndex((current) => (current + 1) % loadingHints.length);
-    }, 2200);
+    }, 1800);
 
     return () => {
       window.clearInterval(intervalId);
@@ -63,21 +58,28 @@ function App() {
   useEffect(() => {
     let cancelled = false;
 
-    async function loadPresets() {
+    async function boot() {
       try {
-        const response = await apiFetch('/api/templates');
-        const payload = await response.json();
+        const [presetsResponse, featuredResponse] = await Promise.all([
+          apiFetch('/api/templates'),
+          apiFetch('/api/gifs/featured'),
+        ]);
 
-        if (!response.ok) {
-          throw new Error(payload.error || 'Failed to load presets.');
+        const presetsPayload = await presetsResponse.json();
+        const featuredPayload = await featuredResponse.json();
+
+        if (!presetsResponse.ok) {
+          throw new Error(presetsPayload.error || 'Failed to load editor.');
         }
 
-        if (cancelled) {
-          return;
+        if (!featuredResponse.ok && featuredResponse.status !== 503) {
+          throw new Error(featuredPayload.error || 'Failed to load GIFs.');
         }
 
-        setPresets(payload.presets || []);
-        setSelectedPresetId(payload.defaultPresetId || payload.presets?.[0]?.id || '');
+        if (!cancelled) {
+          setPresets(presetsPayload.presets || []);
+          setFeaturedGifs(featuredPayload.results || []);
+        }
       } catch (loadError) {
         if (!cancelled) {
           setError(loadError.message);
@@ -89,7 +91,7 @@ function App() {
       }
     }
 
-    loadPresets();
+    boot();
 
     return () => {
       cancelled = true;
@@ -101,31 +103,18 @@ function App() {
       return;
     }
 
-    setEditor((current) => {
-      if (media.mediaType === 'video') {
-        return {
-          ...current,
-          ...normalizeVideoTrim(
-            {
-              startSeconds: current.startSeconds,
-              durationSeconds: current.durationSeconds || selectedPreset.trim.defaultDurationSeconds,
-            },
-            selectedPreset,
-            sourceDuration,
-          ),
-        };
-      }
-
-      return {
-        ...current,
-        durationSeconds: clamp(
-          current.durationSeconds || selectedPreset.trim.defaultDurationSeconds,
-          selectedPreset.trim.minDurationSeconds,
-          selectedPreset.trim.maxDurationSeconds,
-        ),
-      };
-    });
-  }, [media.mediaType, selectedPreset, sourceDuration]);
+    setEditor((current) => ({
+      ...current,
+      ...normalizeVideoTrim(
+        {
+          startSeconds: current.startSeconds,
+          durationSeconds: current.durationSeconds || selectedPreset.trim.defaultDurationSeconds,
+        },
+        selectedPreset,
+        sourceDuration,
+      ),
+    }));
+  }, [selectedPreset, sourceDuration]);
 
   useEffect(() => {
     return () => {
@@ -134,11 +123,6 @@ function App() {
       }
     };
   }, [media.file, media.previewUrl]);
-
-  const handlePresetSelect = (presetId) => {
-    setSelectedPresetId(presetId);
-    setRenderResult(null);
-  };
 
   const handleMediaChange = ({ file, mediaUrl = '', previewUrl, mediaType }) => {
     if (media.file && media.previewUrl && media.previewUrl.startsWith('blob:')) {
@@ -149,6 +133,16 @@ function App() {
     setSourceDuration(null);
     setRenderResult(null);
     setError('');
+  };
+
+  const handleGifSelect = (item) => {
+    setMediaSource('search');
+    handleMediaChange({
+      file: null,
+      mediaUrl: item.sourceUrl,
+      previewUrl: item.sourceUrl,
+      mediaType: item.sourceType === 'video' ? 'video' : 'image',
+    });
   };
 
   const handleTextChange = (field, value) => {
@@ -168,10 +162,6 @@ function App() {
         [field]: Number.isFinite(numericValue) ? numericValue : 0,
       };
 
-      if (media.mediaType !== 'video') {
-        return next;
-      }
-
       return {
         ...current,
         ...normalizeVideoTrim(next, selectedPreset, sourceDuration),
@@ -186,23 +176,6 @@ function App() {
     }
 
     setSourceDuration(duration);
-    setEditor((current) => {
-      if (!selectedPreset) {
-        return current;
-      }
-
-      return {
-        ...current,
-        ...normalizeVideoTrim(
-          {
-            startSeconds: current.startSeconds,
-            durationSeconds: current.durationSeconds || selectedPreset.trim.defaultDurationSeconds,
-          },
-          selectedPreset,
-          duration,
-        ),
-      };
-    });
   };
 
   const videoTrim = useMemo(() => {
@@ -220,7 +193,7 @@ function App() {
 
   const renderMeme = async () => {
     if (!selectedPreset || (!media.file && !media.mediaUrl)) {
-      setError('Pick a preset and add an upload or direct media URL first.');
+      setError('Pick a GIF or upload something first.');
       return;
     }
 
@@ -229,8 +202,6 @@ function App() {
 
     const formData = new FormData();
     formData.append('presetId', selectedPreset.id);
-    formData.append('topText', editor.topText);
-    formData.append('bottomText', editor.bottomText);
     formData.append('caption', editor.caption);
     formData.append('durationSeconds', String(videoTrim?.durationSeconds || editor.durationSeconds));
 
@@ -266,76 +237,83 @@ function App() {
   const activeTextSlots = selectedPreset?.textSlots || [];
 
   return (
-    <div className="app-shell">
-      <header className="hero">
-        <div>
-          <span className="eyebrow">Video Meme</span>
-          <h1>GIF Meme Editor</h1>
-          <p>
-            Pick a style, add a clip or image, write your text, and export a shareable GIF.
-          </p>
-        </div>
+    <div className="app-shell one-page">
+      <header className="hero compact-hero">
+        <h1>Video Meme</h1>
       </header>
 
-      {isHostedEnvironment && (
-        <section className="hosting-note card" aria-label="Hosting note">
-          <strong>Free hosting:</strong> the first load can be slow if the app has been asleep.
-        </section>
-      )}
-
-      <main className="layout">
-        <section className="editor-panel card">
+      <main className="single-screen-layout">
+        <section className="editor-panel card compact-editor">
           {isBooting ? (
-            <p>Loading presets…</p>
+            <div className="loading-copy">Loading…</div>
           ) : (
             <>
-              <MemeSelector
-                presets={presets}
-                selectedPresetId={selectedPresetId}
-                onSelect={handlePresetSelect}
-              />
+              <GifSearch featured={featuredGifs} onSelect={handleGifSelect} />
 
-              <ImageUploader
-                media={media}
-                onChange={handleMediaChange}
-                onVideoMetadata={handleVideoMetadata}
-              />
+              <div className="source-switch" role="tablist" aria-label="Media source">
+                <button
+                  type="button"
+                  className={`source-tab ${mediaSource === 'search' ? 'active' : ''}`}
+                  onClick={() => setMediaSource('search')}
+                >
+                  GIFs
+                </button>
+                <button
+                  type="button"
+                  className={`source-tab ${mediaSource === 'upload' ? 'active' : ''}`}
+                  onClick={() => setMediaSource('upload')}
+                >
+                  Upload
+                </button>
+              </div>
 
-              <TextInputs
-                slots={activeTextSlots}
-                values={editor}
-                onChange={handleTextChange}
-              />
+              {mediaSource === 'upload' && (
+                <ImageUploader
+                  media={media}
+                  onChange={handleMediaChange}
+                  onVideoMetadata={handleVideoMetadata}
+                />
+              )}
 
-              <TrimControls
-                visible={media.mediaType === 'video'}
-                trim={videoTrim}
-                onChange={handleTrimChange}
-                presetTrim={selectedPreset?.trim}
-              />
+              {media.mediaUrl || media.file ? (
+                <>
+                  <TextInputs
+                    slots={activeTextSlots}
+                    values={editor}
+                    onChange={handleTextChange}
+                  />
 
-              <button
-                className="primary-button full-width-mobile render-button"
-                type="button"
-                onClick={renderMeme}
-                disabled={isLoading || !selectedPreset || (!media.file && !media.mediaUrl)}
-              >
-                {isLoading ? 'Rendering mobile-share GIF…' : 'Render mobile-share GIF'}
-              </button>
+                  <TrimControls
+                    visible={media.mediaType === 'video'}
+                    trim={videoTrim}
+                    onChange={handleTrimChange}
+                    presetTrim={selectedPreset?.trim}
+                  />
+
+                  <button
+                    className="primary-button full-width render-button"
+                    type="button"
+                    onClick={renderMeme}
+                    disabled={isLoading || !selectedPreset}
+                  >
+                    {isLoading ? 'Rendering…' : 'Make GIF'}
+                  </button>
+                </>
+              ) : null}
 
               {error && <p className="error-banner">{error}</p>}
             </>
           )}
         </section>
 
-        <aside className="preview-panel card">
+        <section className="preview-panel card preview-stage">
           <MemePreview
             result={renderResult}
             selectedPreset={selectedPreset}
             isLoading={isLoading}
             loadingMessage={activeLoadingHint}
           />
-        </aside>
+        </section>
       </main>
     </div>
   );

@@ -214,3 +214,116 @@ test('API can ingest a bounded YouTube-style page URL before rendering', async (
     await harness.cleanup();
   }
 });
+
+test('API can search Tenor-style GIF results through the server endpoint', async () => {
+  const harness = await createTempHarness();
+  const remoteServer = http.createServer((req, res) => {
+    const requestUrl = new URL(req.url, `http://127.0.0.1:${remoteServer.address().port}`);
+
+    assert.equal(requestUrl.pathname, '/search');
+    assert.equal(requestUrl.searchParams.get('q'), 'celebration');
+    assert.equal(requestUrl.searchParams.get('client_key'), 'video-meme-test');
+
+    res.setHeader('content-type', 'application/json');
+    res.end(JSON.stringify({
+      next: 'next-page-token',
+      results: [
+        {
+          id: 'tenor-demo',
+          content_description: 'Celebration GIF',
+          media_formats: {
+            tinygif: {
+              url: 'https://media.example.com/demo-tiny.gif',
+              dims: [220, 220],
+            },
+            mp4: {
+              url: 'https://media.example.com/demo.mp4',
+              dims: [480, 480],
+            },
+          },
+        },
+      ],
+    }));
+  });
+
+  harness.env.tenorApiKey = 'test-tenor-key';
+
+  try {
+    const remotePort = await startServer(remoteServer);
+    harness.env.tenorApiBaseUrl = `http://127.0.0.1:${remotePort}`;
+
+    const app = createApp({ env: harness.env });
+    const apiServer = http.createServer(app);
+    const apiPort = await startServer(apiServer);
+
+    const response = await fetch(`http://127.0.0.1:${apiPort}/api/gifs/search?q=celebration`);
+    assert.equal(response.status, 200);
+
+    const payload = await response.json();
+    assert.equal(payload.next, 'next-page-token');
+    assert.equal(payload.results.length, 1);
+    assert.equal(payload.results[0].id, 'tenor-demo');
+    assert.equal(payload.results[0].previewUrl, 'https://media.example.com/demo-tiny.gif');
+    assert.equal(payload.results[0].sourceUrl, 'https://media.example.com/demo.mp4');
+    assert.equal(payload.results[0].sourceType, 'video');
+
+    await stopServer(apiServer);
+  } finally {
+    await stopServer(remoteServer);
+    await harness.cleanup();
+  }
+});
+
+test('API can fetch featured Tenor-style GIFs through the server endpoint', async () => {
+  const harness = await createTempHarness();
+  const remoteServer = http.createServer((req, res) => {
+    const requestUrl = new URL(req.url, `http://127.0.0.1:${remoteServer.address().port}`);
+
+    assert.equal(requestUrl.pathname, '/featured');
+
+    res.setHeader('content-type', 'application/json');
+    res.end(JSON.stringify({
+      next: '',
+      results: [
+        {
+          id: 'featured-demo',
+          content_description: 'Featured GIF',
+          media_formats: {
+            tinygif: {
+              url: 'https://media.example.com/featured-tiny.gif',
+              dims: [220, 180],
+            },
+            gif: {
+              url: 'https://media.example.com/featured.gif',
+              dims: [480, 392],
+            },
+          },
+        },
+      ],
+    }));
+  });
+
+  harness.env.tenorApiKey = 'test-tenor-key';
+
+  try {
+    const remotePort = await startServer(remoteServer);
+    harness.env.tenorApiBaseUrl = `http://127.0.0.1:${remotePort}`;
+
+    const app = createApp({ env: harness.env });
+    const apiServer = http.createServer(app);
+    const apiPort = await startServer(apiServer);
+
+    const response = await fetch(`http://127.0.0.1:${apiPort}/api/gifs/featured`);
+    assert.equal(response.status, 200);
+
+    const payload = await response.json();
+    assert.equal(payload.results[0].id, 'featured-demo');
+    assert.equal(payload.results[0].previewUrl, 'https://media.example.com/featured-tiny.gif');
+    assert.equal(payload.results[0].sourceUrl, 'https://media.example.com/featured.gif');
+
+    await stopServer(apiServer);
+  } finally {
+    await stopServer(remoteServer);
+    await harness.cleanup();
+  }
+});

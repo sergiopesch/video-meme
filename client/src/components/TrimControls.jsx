@@ -16,8 +16,7 @@ const TrimControls = ({ visible, trim, onChange, presetTrim }) => {
   return (
     <section className="panel-section">
       <div className="section-heading">
-        <h2>4. Trim the moment</h2>
-        <p>Choose the part you want to turn into a GIF.</p>
+        <h2>Trim</h2>
       </div>
 
       <div className="trim-summary-card">

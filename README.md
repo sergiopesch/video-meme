@@ -127,13 +127,23 @@ Key variables:
 
 - `PORT`
 - `MAX_UPLOAD_SIZE`
+- `TENOR_API_KEY`
+- `TENOR_CLIENT_KEY`
 - `FFMPEG_BIN`
 - `FFPROBE_BIN`
 - `FONT_PATH`
 - `VITE_API_BASE_URL`
 - `VITE_API_PROXY_TARGET`
 
+Add `TENOR_API_KEY` in Render if you want the homepage to show featured GIFs and search results.
+
 ## API
+
+### `GET /api/gifs/featured`
+Returns the current featured GIFs from Tenor when `TENOR_API_KEY` is configured.
+
+### `GET /api/gifs/search?q=<query>`
+Searches Tenor GIFs and returns a compact result set for the editor.
 
 ### `GET /api/templates`
 Returns structured preset metadata.

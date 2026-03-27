@@ -6,8 +6,7 @@ const TextInputs = ({ slots, values, onChange }) => {
   return (
     <section className="panel-section">
       <div className="section-heading">
-        <h2>3. Add your text</h2>
-        <p>Keep it short and readable.</p>
+        <h2>Text</h2>
       </div>
 
       <div className="field-grid">

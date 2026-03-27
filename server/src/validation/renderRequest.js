@@ -37,6 +37,10 @@ function inferInputType(file) {
     return null;
   }
 
+  if (file.mimetype === 'image/gif') {
+    return 'video';
+  }
+
   if (file.mimetype.startsWith('image/')) {
     return 'image';
   }
@@ -47,7 +51,11 @@ function inferInputType(file) {
 
   const extension = path.extname(file.originalname || '').toLowerCase();
 
-  if (['.png', '.jpg', '.jpeg', '.webp', '.gif'].includes(extension)) {
+  if (extension === '.gif') {
+    return 'video';
+  }
+
+  if (['.png', '.jpg', '.jpeg', '.webp'].includes(extension)) {
     return 'image';
   }
 

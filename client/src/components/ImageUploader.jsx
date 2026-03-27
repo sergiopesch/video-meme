@@ -139,9 +139,9 @@ const ImageUploader = ({ media, onChange, onVideoMetadata }) => {
           )
         ) : (
           <div className="upload-copy">
-            <span className="upload-icon">⬆</span>
-            <strong>Tap to upload</strong>
-            <p>Image or short video</p>
+            <span className="upload-icon">+</span>
+            <strong>Upload</strong>
+            <p>Photo, video, or GIF</p>
           </div>
         )}
       </div>
@@ -158,31 +158,24 @@ const ImageUploader = ({ media, onChange, onVideoMetadata }) => {
         {sourceLabel && <span className="file-meta">{sourceLabel}</span>}
       </div>
 
-      <div className="field-grid compact url-import">
-        <label className="field-block">
-          <span>Or paste a direct media link</span>
-          <input
-            type="url"
-            placeholder="https://example.com/clip.mp4"
-            value={mediaUrlInput}
-            onChange={(event) => setMediaUrlInput(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') {
-                event.preventDefault();
-                applyMediaUrl();
-              }
-            }}
-            inputMode="url"
-          />
-          <small>
-            Direct image or video files work best.
-          </small>
-        </label>
-        <div className="url-actions">
-          <button type="button" className="secondary-button full-width-mobile" onClick={applyMediaUrl}>
-            Use URL
-          </button>
-        </div>
+      <div className="search-row url-import">
+        <input
+          className="search-input"
+          type="url"
+          placeholder="Paste a direct media link"
+          value={mediaUrlInput}
+          onChange={(event) => setMediaUrlInput(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              applyMediaUrl();
+            }
+          }}
+          inputMode="url"
+        />
+        <button type="button" className="secondary-button search-button" onClick={applyMediaUrl}>
+          Use
+        </button>
       </div>
 
       <input
