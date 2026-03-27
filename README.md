@@ -7,7 +7,6 @@ This repo is a minimal GIF remix tool:
 - open the app and see featured GIFs
 - search for another GIF or upload your own media
 - add one strong caption
-- trim motion when needed
 - export a short shareable GIF
 
 ## What this slice delivers
@@ -29,7 +28,7 @@ This repo is a minimal GIF remix tool:
 - bounded YouTube page ingestion when the page exposes a directly downloadable stream URL
 - a single caption-focused editing flow
 - remix flow that masks common top/bottom meme text zones before applying replacement copy
-- trim controls for short GIF-safe video windows
+- automatic short GIF duration defaults for video sources
 - GIF preview with download/copy-link actions and native mobile share when available
 - API base URL helper plus Vite proxy config so the client no longer hardcodes `localhost`
 

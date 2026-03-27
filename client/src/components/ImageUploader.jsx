@@ -120,7 +120,7 @@ const ImageUploader = ({ media, onChange, onVideoMetadata }) => {
               controls
               className="upload-preview"
               playsInline
-              onLoadedMetadata={(event) => onVideoMetadata(event.currentTarget.duration)}
+              onLoadedMetadata={(event) => onVideoMetadata?.(event.currentTarget.duration)}
               onClick={(event) => event.stopPropagation()}
             />
           ) : inlinePreview && media.mediaType === 'image' ? (

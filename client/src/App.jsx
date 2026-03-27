@@ -4,9 +4,7 @@ import GifSearch from './components/GifSearch';
 import ImageUploader from './components/ImageUploader';
 import MemePreview from './components/MemePreview';
 import TextInputs from './components/TextInputs';
-import TrimControls from './components/TrimControls';
 import { apiFetch } from './lib/api';
-import { buildTrimState, normalizeVideoTrim } from './lib/trim';
 
 const DEFAULT_PRESET_ID = 'caption-punch';
 const REMIX_PRESET_ID = 'classic-remix';
@@ -26,13 +24,10 @@ function App() {
   const [editorMode, setEditorMode] = useState(EDITOR_MODES.CAPTION);
   const [mediaSource, setMediaSource] = useState('search');
   const [media, setMedia] = useState({ file: null, mediaUrl: '', previewUrl: '', mediaType: '' });
-  const [sourceDuration, setSourceDuration] = useState(null);
   const [editor, setEditor] = useState({
     topText: '',
     bottomText: '',
     caption: '',
-    startSeconds: 0,
-    durationSeconds: 3.5,
   });
   const [renderResult, setRenderResult] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -114,24 +109,6 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (!selectedPreset) {
-      return;
-    }
-
-    setEditor((current) => ({
-      ...current,
-      ...normalizeVideoTrim(
-        {
-          startSeconds: current.startSeconds,
-          durationSeconds: current.durationSeconds || selectedPreset.trim.defaultDurationSeconds,
-        },
-        selectedPreset,
-        sourceDuration,
-      ),
-    }));
-  }, [selectedPreset, sourceDuration]);
-
-  useEffect(() => {
     setRenderResult(null);
     setError('');
   }, [editorMode]);
@@ -150,7 +127,6 @@ function App() {
     }
 
     setMedia({ file, mediaUrl, previewUrl, mediaType });
-    setSourceDuration(null);
     setRenderResult(null);
     setError('');
   };
@@ -173,44 +149,6 @@ function App() {
     setRenderResult(null);
   };
 
-  const handleTrimChange = (field, value) => {
-    const numericValue = Number(value);
-
-    setEditor((current) => {
-      const next = {
-        ...current,
-        [field]: Number.isFinite(numericValue) ? numericValue : 0,
-      };
-
-      return {
-        ...current,
-        ...normalizeVideoTrim(next, selectedPreset, sourceDuration),
-      };
-    });
-    setRenderResult(null);
-  };
-
-  const handleVideoMetadata = (duration) => {
-    if (!Number.isFinite(duration) || duration <= 0) {
-      return;
-    }
-
-    setSourceDuration(duration);
-  };
-
-  const videoTrim = useMemo(() => {
-    if (media.mediaType !== 'video' || !selectedPreset) {
-      return null;
-    }
-
-    return buildTrimState({
-      preset: selectedPreset,
-      sourceDuration,
-      startSeconds: editor.startSeconds,
-      durationSeconds: editor.durationSeconds || selectedPreset.trim.defaultDurationSeconds,
-    });
-  }, [media.mediaType, selectedPreset, sourceDuration, editor.startSeconds, editor.durationSeconds]);
-
   const renderMeme = async () => {
     if (!selectedPreset || (!media.file && !media.mediaUrl)) {
       setError('Pick a GIF or upload something first.');
@@ -225,11 +163,6 @@ function App() {
     formData.append('topText', editor.topText);
     formData.append('bottomText', editor.bottomText);
     formData.append('caption', editor.caption);
-    formData.append('durationSeconds', String(videoTrim?.durationSeconds || editor.durationSeconds));
-
-    if (media.mediaType === 'video') {
-      formData.append('startSeconds', String(videoTrim?.startSeconds || editor.startSeconds));
-    }
 
     if (media.file) {
       formData.append('media', media.file);
@@ -274,6 +207,7 @@ function App() {
                 featured={featuredGifs}
                 error={gifDiscoveryError}
                 onSelect={handleGifSelect}
+                selectedSourceUrl={media.mediaUrl}
               />
 
               <div className="mode-switch" role="tablist" aria-label="Editing mode">
@@ -320,7 +254,6 @@ function App() {
                 <ImageUploader
                   media={media}
                   onChange={handleMediaChange}
-                  onVideoMetadata={handleVideoMetadata}
                 />
               )}
 
@@ -330,13 +263,6 @@ function App() {
                     slots={activeTextSlots}
                     values={editor}
                     onChange={handleTextChange}
-                  />
-
-                  <TrimControls
-                    visible={media.mediaType === 'video'}
-                    trim={videoTrim}
-                    onChange={handleTrimChange}
-                    presetTrim={selectedPreset?.trim}
                   />
 
                   <button

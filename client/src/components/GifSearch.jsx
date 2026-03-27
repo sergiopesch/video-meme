@@ -3,7 +3,7 @@ import { apiFetch } from '../lib/api';
 
 const quickSearches = ['funny', 'cat', 'reaction', 'celebration', 'fail'];
 
-const GifSearch = ({ featured = [], error: discoveryError = '', onSelect }) => {
+const GifSearch = ({ featured = [], error: discoveryError = '', onSelect, selectedSourceUrl = '' }) => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
   const [searchError, setSearchError] = useState('');
@@ -42,7 +42,7 @@ const GifSearch = ({ featured = [], error: discoveryError = '', onSelect }) => {
         <input
           className="search-input"
           type="search"
-          placeholder="Search GIPHY"
+          placeholder="Search Gif"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           onKeyDown={(event) => {
@@ -79,16 +79,22 @@ const GifSearch = ({ featured = [], error: discoveryError = '', onSelect }) => {
         {isLoading ? (
           <div className="gif-result-placeholder">Searching…</div>
         ) : (results.length ? results : featured).length ? (
-          (results.length ? results : featured).map((item) => (
+          (results.length ? results : featured).map((item) => {
+            const isSelected = selectedSourceUrl && selectedSourceUrl === item.sourceUrl;
+
+            return (
             <button
               key={item.id}
               type="button"
-              className="gif-result-card"
+              className={`gif-result-card ${isSelected ? 'selected' : ''}`}
               onClick={() => onSelect(item)}
+              aria-pressed={isSelected}
             >
               <img src={item.previewUrl} alt={item.title} className="gif-result-image" loading="lazy" />
+              {isSelected && <span className="gif-selected-badge">Selected</span>}
             </button>
-          ))
+            );
+          })
         ) : (
           <div className="gif-result-placeholder">No GIFs yet.</div>
         )}

@@ -37,7 +37,7 @@ button {
   width: 100%;
   max-width: 1280px;
   margin: 0 auto;
-  padding: 14px;
+  padding: 12px;
 }
 
 .one-page {
@@ -101,7 +101,7 @@ button {
 
 .search-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: 1fr;
   gap: 8px;
 }
 
@@ -199,12 +199,24 @@ button {
 }
 
 .gif-result-card {
+  position: relative;
   background: var(--panel-alt);
   border: 1px solid #2f2f2f;
   border-radius: 16px;
   padding: 0;
   overflow: hidden;
   aspect-ratio: 1 / 1;
+  transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease;
+}
+
+.gif-result-card:hover {
+  border-color: #4a4a4a;
+}
+
+.gif-result-card.selected {
+  border-color: #ffffff;
+  box-shadow: 0 0 0 1px #ffffff, 0 10px 20px rgba(0, 0, 0, 0.35);
+  transform: translateY(-1px);
 }
 
 .gif-result-image {
@@ -212,6 +224,22 @@ button {
   width: 100%;
   height: 100%;
   object-fit: cover;
+}
+
+.gif-selected-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
 }
 
 .gif-result-placeholder,
@@ -262,10 +290,37 @@ button {
 .upload-actions,
 .result-actions {
   display: flex;
+  flex-direction: column;
   gap: 8px;
-  flex-wrap: wrap;
   margin-top: 10px;
-  align-items: center;
+  align-items: stretch;
+}
+
+.upload-actions .secondary-button,
+.result-actions button {
+  width: 100%;
+}
+
+@media (min-width: 560px) {
+  .app-shell {
+    padding: 14px;
+  }
+
+  .search-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .upload-actions,
+  .result-actions {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .upload-actions .secondary-button,
+  .result-actions button {
+    width: auto;
+  }
 }
 
 .field-grid,
