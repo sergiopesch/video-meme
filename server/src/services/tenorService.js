@@ -71,7 +71,9 @@ async function fetchTenorCollection({ env, endpoint, query = '', limit = 12, pos
   }
 
   if (!response.ok) {
-    throw createHttpError(502, `GIF search returned HTTP ${response.status}.`);
+    const responseText = await response.text().catch(() => '');
+    const detail = responseText ? ` ${responseText.slice(0, 240)}` : '';
+    throw createHttpError(502, `Tenor API returned HTTP ${response.status}.${detail}`);
   }
 
   const payload = await response.json();

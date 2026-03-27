@@ -31,6 +31,7 @@ function App() {
   const [renderResult, setRenderResult] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [gifDiscoveryError, setGifDiscoveryError] = useState('');
   const [isBooting, setIsBooting] = useState(true);
   const [loadingHintIndex, setLoadingHintIndex] = useState(0);
 
@@ -60,25 +61,28 @@ function App() {
 
     async function boot() {
       try {
-        const [presetsResponse, featuredResponse] = await Promise.all([
-          apiFetch('/api/templates'),
-          apiFetch('/api/gifs/featured'),
-        ]);
-
+        const presetsResponse = await apiFetch('/api/templates');
         const presetsPayload = await presetsResponse.json();
-        const featuredPayload = await featuredResponse.json();
 
         if (!presetsResponse.ok) {
           throw new Error(presetsPayload.error || 'Failed to load editor.');
         }
 
-        if (!featuredResponse.ok && featuredResponse.status !== 503) {
-          throw new Error(featuredPayload.error || 'Failed to load GIFs.');
-        }
-
         if (!cancelled) {
           setPresets(presetsPayload.presets || []);
-          setFeaturedGifs(featuredPayload.results || []);
+        }
+
+        const featuredResponse = await apiFetch('/api/gifs/featured');
+        const featuredPayload = await featuredResponse.json();
+
+        if (!cancelled) {
+          if (featuredResponse.ok) {
+            setFeaturedGifs(featuredPayload.results || []);
+            setGifDiscoveryError('');
+          } else {
+            setFeaturedGifs([]);
+            setGifDiscoveryError(featuredPayload.error || 'GIF search is unavailable right now.');
+          }
         }
       } catch (loadError) {
         if (!cancelled) {
@@ -248,7 +252,11 @@ function App() {
             <div className="loading-copy">Loading…</div>
           ) : (
             <>
-              <GifSearch featured={featuredGifs} onSelect={handleGifSelect} />
+              <GifSearch
+                featured={featuredGifs}
+                error={gifDiscoveryError}
+                onSelect={handleGifSelect}
+              />
 
               <div className="source-switch" role="tablist" aria-label="Media source">
                 <button

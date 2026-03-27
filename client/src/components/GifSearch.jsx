@@ -3,10 +3,10 @@ import { apiFetch } from '../lib/api';
 
 const quickSearches = ['funny', 'cat', 'reaction', 'celebration', 'fail'];
 
-const GifSearch = ({ featured = [], onSelect }) => {
+const GifSearch = ({ featured = [], error: discoveryError = '', onSelect }) => {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState([]);
-  const [error, setError] = useState('');
+  const [searchError, setSearchError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const runSearch = async (nextQuery) => {
@@ -17,7 +17,7 @@ const GifSearch = ({ featured = [], onSelect }) => {
     }
 
     setIsLoading(true);
-    setError('');
+    setSearchError('');
 
     try {
       const response = await apiFetch(`/api/gifs/search?q=${encodeURIComponent(trimmedQuery)}`);
@@ -30,7 +30,7 @@ const GifSearch = ({ featured = [], onSelect }) => {
       setResults(payload.results || []);
     } catch (searchError) {
       setResults([]);
-      setError(searchError.message);
+      setSearchError(searchError.message);
     } finally {
       setIsLoading(false);
     }
@@ -73,21 +73,25 @@ const GifSearch = ({ featured = [], onSelect }) => {
         ))}
       </div>
 
-      {error && <p className="support-copy">{error}</p>}
+      {(searchError || discoveryError) && <p className="support-copy">{searchError || discoveryError}</p>}
 
       <div className="gif-results">
         {isLoading ? (
           <div className="gif-result-placeholder">Searching…</div>
-        ) : (results.length ? results : featured).map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            className="gif-result-card"
-            onClick={() => onSelect(item)}
-          >
-            <img src={item.previewUrl} alt={item.title} className="gif-result-image" loading="lazy" />
-          </button>
-        ))}
+        ) : (results.length ? results : featured).length ? (
+          (results.length ? results : featured).map((item) => (
+            <button
+              key={item.id}
+              type="button"
+              className="gif-result-card"
+              onClick={() => onSelect(item)}
+            >
+              <img src={item.previewUrl} alt={item.title} className="gif-result-image" loading="lazy" />
+            </button>
+          ))
+        ) : (
+          <div className="gif-result-placeholder">No GIFs yet.</div>
+        )}
       </div>
     </section>
   );
