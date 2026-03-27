@@ -1,0 +1,18 @@
+<svg width="320" height="200" viewBox="0 0 320 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="160" y1="0" x2="160" y2="200" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#083344"/>
+      <stop offset="1" stop-color="#7E22CE"/>
+    </linearGradient>
+  </defs>
+  <rect width="320" height="200" rx="28" fill="url(#bg)"/>
+  <rect x="18" y="18" width="284" height="164" rx="22" fill="white" fill-opacity="0.05" stroke="white" stroke-opacity="0.12"/>
+  <text x="28" y="42" fill="#ECFEFF" font-family="Inter, Arial, sans-serif" font-size="24" font-weight="700">Status Drop</text>
+  <text x="28" y="64" fill="#67E8F9" font-family="Inter, Arial, sans-serif" font-size="13" font-weight="600">Vertical • Social status take</text>
+  <rect x="124" y="76" width="72" height="108" rx="20" fill="#082F49" stroke="#22D3EE" stroke-width="4"/>
+  <rect x="136" y="92" width="48" height="10" rx="5" fill="#F8FAFC"/>
+  <rect x="130" y="118" width="60" height="22" rx="11" fill="#000000" fill-opacity="0.58"/>
+  <rect x="140" y="126" width="40" height="6" rx="3" fill="#F8FAFC"/>
+  <rect x="132" y="154" width="56" height="10" rx="5" fill="#F8FAFC"/>
+  <text x="28" y="168" fill="#CFFAFE" font-family="Inter, Arial, sans-serif" font-size="14" font-weight="600">1080 × 1920</text>
+</svg>

@@ -25,6 +25,8 @@ test('API exposes presets and renders a meme through the HTTP boundary', async (
 
     assert.ok(Array.isArray(presetsPayload.presets));
     assert.equal(presetsPayload.defaultPresetId, 'classic-impact');
+    assert.ok(presetsPayload.presets.every((preset) => preset.thumbnail?.src));
+    assert.ok(presetsPayload.presets.some((preset) => preset.id === 'status-drop'));
 
     const imagePath = await createSampleImage(path.join(harness.rootDir, 'request.png'));
     const imageBuffer = await fs.readFile(imagePath);
