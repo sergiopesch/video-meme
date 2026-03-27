@@ -38,7 +38,8 @@ async function fetchTenorCollection({ env, endpoint, query = '', limit = 12, pos
   }
 
   const trimmedQuery = String(query || '').trim();
-  const requestUrl = new URL(`/${endpoint}`, env.tenorApiBaseUrl);
+  const normalizedBaseUrl = String(env.tenorApiBaseUrl || '').replace(/\/+$/, '');
+  const requestUrl = new URL(`${normalizedBaseUrl}/${endpoint}`);
   requestUrl.searchParams.set('key', env.tenorApiKey);
   requestUrl.searchParams.set('client_key', env.tenorClientKey);
   requestUrl.searchParams.set('limit', String(Math.min(Math.max(Number(limit) || 12, 1), 20)));
