@@ -77,6 +77,20 @@ button {
   align-items: start;
 }
 
+.hosting-note {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(34, 197, 94, 0.12), rgba(56, 189, 248, 0.1)),
+    rgba(15, 23, 42, 0.8);
+  color: #dfffea;
+}
+
+.hosting-note strong {
+  color: #86efac;
+}
+
 .card {
   background: var(--panel);
   border: 1px solid var(--panel-border);

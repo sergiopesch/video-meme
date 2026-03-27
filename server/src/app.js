@@ -10,6 +10,8 @@ const { errorToResponse } = require('./utils/errors');
 function createApp({ env = loadEnv(), renderService = new RenderService(env) } = {}) {
   const app = express();
   const apiRouter = createApiRouter({ env, renderService });
+  const clientDistDir = env.paths?.clientDistDir;
+  const clientIndexPath = clientDistDir ? path.join(clientDistDir, 'index.html') : null;
 
   app.use(
     cors({
@@ -22,15 +24,15 @@ function createApp({ env = loadEnv(), renderService = new RenderService(env) } =
   app.use('/api', apiRouter);
   app.use('/', apiRouter);
 
-  if (fs.existsSync(env.paths.clientDistDir)) {
-    app.use(express.static(env.paths.clientDistDir));
+  if (clientIndexPath && fs.existsSync(clientIndexPath)) {
+    app.use(express.static(clientDistDir));
     app.get('*', (req, res, next) => {
       if (req.path.startsWith('/api') || req.path.startsWith('/output')) {
         next();
         return;
       }
 
-      res.sendFile(path.join(env.paths.clientDistDir, 'index.html'));
+      res.sendFile(clientIndexPath);
     });
   }
 

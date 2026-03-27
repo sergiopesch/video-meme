@@ -13,7 +13,7 @@ function buildOutputDetails(result) {
   };
 }
 
-const MemePreview = ({ result, selectedPreset, isLoading }) => {
+const MemePreview = ({ result, selectedPreset, isLoading, loadingMessage }) => {
   const assetUrl = result?.outputUrl ? buildApiUrl(result.outputUrl) : '';
   const [actionMessage, setActionMessage] = useState('');
   const output = useMemo(() => buildOutputDetails(result), [result]);
@@ -105,7 +105,7 @@ const MemePreview = ({ result, selectedPreset, isLoading }) => {
       {isLoading ? (
         <div className="empty-state busy">
           <div className="spinner" />
-          <p>FFmpeg is building the final GIF…</p>
+          <p>{loadingMessage || 'FFmpeg is building the final GIF…'}</p>
         </div>
       ) : result ? (
         <>

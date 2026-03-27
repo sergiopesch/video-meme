@@ -26,6 +26,7 @@ function loadEnv() {
   const env = {
     serverRoot,
     projectRoot,
+    isProduction: process.env.NODE_ENV === 'production',
     port: Number(process.env.PORT || 5000),
     clientUrl: process.env.CLIENT_URL || 'http://localhost:5173',
     maxUploadSize: Number(process.env.MAX_UPLOAD_SIZE || 50 * 1024 * 1024),
@@ -42,7 +43,7 @@ function loadEnv() {
     },
   };
 
-  Object.values(env.paths).forEach(ensureDirSync);
+  [env.paths.publicDir, env.paths.uploadsDir, env.paths.outputDir, env.paths.jobsDir].forEach(ensureDirSync);
 
   return env;
 }

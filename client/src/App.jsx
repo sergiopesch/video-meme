@@ -8,6 +8,12 @@ import TrimControls from './components/TrimControls';
 import { apiFetch } from './lib/api';
 import { buildTrimState, clamp, normalizeVideoTrim } from './lib/trim';
 
+const loadingHints = [
+  'Waking up the render engine and loading the preset stack…',
+  'Packing your clip into a phone-friendly GIF window…',
+  'Running FFmpeg and squeezing the file for easy sharing…',
+];
+
 function App() {
   const [presets, setPresets] = useState([]);
   const [selectedPresetId, setSelectedPresetId] = useState('');
@@ -24,11 +30,35 @@ function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [isBooting, setIsBooting] = useState(true);
+  const [loadingHintIndex, setLoadingHintIndex] = useState(0);
 
   const selectedPreset = useMemo(
     () => presets.find((preset) => preset.id === selectedPresetId) || null,
     [presets, selectedPresetId],
   );
+  const isHostedEnvironment = useMemo(() => {
+    if (typeof window === 'undefined') {
+      return false;
+    }
+
+    return !['localhost', '127.0.0.1'].includes(window.location.hostname);
+  }, []);
+  const activeLoadingHint = loadingHints[loadingHintIndex] || loadingHints[0];
+
+  useEffect(() => {
+    if (!isLoading) {
+      setLoadingHintIndex(0);
+      return;
+    }
+
+    const intervalId = window.setInterval(() => {
+      setLoadingHintIndex((current) => (current + 1) % loadingHints.length);
+    }, 2200);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [isLoading]);
 
   useEffect(() => {
     let cancelled = false;
@@ -248,6 +278,13 @@ function App() {
         </div>
       </header>
 
+      {isHostedEnvironment && (
+        <section className="hosting-note card" aria-label="Hosting note">
+          <strong>Free-hosted mode:</strong> the app can take up to a minute to wake up after sitting idle. Keep clips
+          short and uploads light for the fastest, most fun renders on mobile.
+        </section>
+      )}
+
       <main className="layout">
         <section className="editor-panel card">
           {isBooting ? (
@@ -315,7 +352,12 @@ function App() {
         </section>
 
         <aside className="preview-panel card">
-          <MemePreview result={renderResult} selectedPreset={selectedPreset} isLoading={isLoading} />
+          <MemePreview
+            result={renderResult}
+            selectedPreset={selectedPreset}
+            isLoading={isLoading}
+            loadingMessage={activeLoadingHint}
+          />
         </aside>
       </main>
     </div>

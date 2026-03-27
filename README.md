@@ -91,6 +91,34 @@ npm run dev
 - API: `http://127.0.0.1:5000`
 - Client: `http://127.0.0.1:5173`
 
+## Deploying Free On Render
+
+This repo is set up to run as a single free Render web service:
+
+- the React client is built during deploy
+- the Express server serves both the API and the built frontend
+- FFmpeg is installed in the container image
+
+Included deployment files:
+
+- `Dockerfile`
+- `render.yaml`
+
+### Recommended free setup
+
+1. Push the repo to GitHub.
+2. In Render, create a new Blueprint or Web Service from this repo.
+3. Use the free instance type.
+4. Keep the default health check at `/api/health`.
+
+The `render.yaml` file already sets a hobby-friendly upload cap of `20 MB` to keep mobile uploads and GIF renders snappy on the free tier.
+
+### Free-tier caveats
+
+- Render free web services spin down after idle time and can take about a minute to wake up again.
+- The filesystem is ephemeral, so generated GIFs are temporary and can disappear after a restart, redeploy, or spin-down.
+- This setup is ideal for hobby use, testing, and playful experimentation, not durable long-term media storage.
+
 ### Environment
 
 Copy `.env.example` or `server/.env.example` if you want to override paths, font, or API base settings.
