@@ -7,7 +7,8 @@ Express API for deterministic meme rendering.
 - normalize preset + caption + trim input
 - run FFmpeg renders
 - expose preset metadata
-- serve rendered MP4 output files
+- serve rendered GIF output files
+- support remix presets that can mask common meme text zones before replacement copy
 
 ## Main endpoints
 - `GET /api/health`

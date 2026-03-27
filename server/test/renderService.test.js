@@ -10,6 +10,14 @@ const {
   createSampleVideo,
 } = require('../test-support/helpers');
 
+test('RenderService builds cleanup masks for the remix preset', () => {
+  const renderService = new RenderService({ paths: {} });
+  const filters = renderService.createCleanupFilters(getPresetById('classic-remix'));
+
+  assert.equal(filters.length, 2);
+  assert.ok(filters.every((filter) => filter.includes('drawbox=')));
+});
+
 test('RenderService renders an image into a GIF meme clip', async () => {
   const harness = await createTempHarness();
 

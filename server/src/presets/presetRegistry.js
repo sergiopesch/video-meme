@@ -45,6 +45,63 @@ const presetRegistry = [
       boxMode: 'caption-card',
     },
   },
+  {
+    id: 'classic-remix',
+    name: 'Classic Remix',
+    description: 'Strip common meme text zones and replace with your own top/bottom copy.',
+    inputTypes: ['image', 'video'],
+    output: {
+      width: 480,
+      height: 270,
+      fps: 12,
+      defaultDuration: 3.5,
+      maxDuration: 5,
+    },
+    export: { ...mobileShareExport },
+    trim: {
+      minStartSeconds: 0,
+      minDurationSeconds: 1,
+      defaultDurationSeconds: 3.5,
+      maxDurationSeconds: 5,
+    },
+    cleanupMasks: [
+      {
+        id: 'top-band',
+        position: 'top',
+        heightRatio: 0.22,
+        color: 'black@1.0',
+      },
+      {
+        id: 'bottom-band',
+        position: 'bottom',
+        heightRatio: 0.22,
+        color: 'black@1.0',
+      },
+    ],
+    textSlots: [
+      {
+        id: 'topText',
+        label: 'Top text',
+        placeholder: 'same joke, your own words',
+        maxLength: 80,
+        position: 'top',
+      },
+      {
+        id: 'bottomText',
+        label: 'Bottom text',
+        placeholder: 'new punchline',
+        maxLength: 80,
+        position: 'bottom',
+      },
+    ],
+    styling: {
+      fontScale: 0.074,
+      textColor: 'white',
+      strokeColor: 'black',
+      strokeWidth: 4,
+      boxMode: 'none',
+    },
+  },
 ];
 
 function clonePreset(preset) {
@@ -58,6 +115,7 @@ function clonePreset(preset) {
     output: { ...preset.output },
     export: { ...preset.export },
     trim: { ...preset.trim },
+    cleanupMasks: (preset.cleanupMasks || []).map((mask) => ({ ...mask })),
     textSlots: preset.textSlots.map((slot) => ({ ...slot })),
     styling: { ...preset.styling },
   };

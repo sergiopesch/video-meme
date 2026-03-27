@@ -42,7 +42,7 @@ const GifSearch = ({ featured = [], error: discoveryError = '', onSelect }) => {
         <input
           className="search-input"
           type="search"
-          placeholder="Search Tenor"
+          placeholder="Search GIPHY"
           value={query}
           onChange={(event) => setQuery(event.target.value)}
           onKeyDown={(event) => {

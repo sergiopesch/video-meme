@@ -5,6 +5,7 @@ React + Vite editor for the deterministic meme rendering API.
 ## What changed
 - the UI now behaves like a meme editor, not an AI demo
 - presets are fetched from the API
+- editor modes now support quick captions and existing-meme remixing
 - uploads support images and videos
 - trim controls appear for video input
 - render output is previewable and downloadable

@@ -22,11 +22,13 @@ This repo is a minimal GIF remix tool:
 
 ### Frontend
 - one-page GIF-first editor UI
+- mode switch for quick captioning vs remixing an existing meme
 - image/video upload with local preview
 - featured GIF discovery and GIF search through a server-side GIPHY integration
 - direct image/video URL ingestion for remotely hosted assets
 - bounded YouTube page ingestion when the page exposes a directly downloadable stream URL
 - a single caption-focused editing flow
+- remix flow that masks common top/bottom meme text zones before applying replacement copy
 - trim controls for short GIF-safe video windows
 - GIF preview with download/copy-link actions and native mobile share when available
 - API base URL helper plus Vite proxy config so the client no longer hardcodes `localhost`
@@ -53,13 +55,21 @@ server/
 
 ## Editor Profile
 
-The current product uses one editing profile:
+The current product uses two editing profiles:
 
 - `caption-punch`
+- `classic-remix`
 
-It keeps the interface intentionally small and supports:
+`caption-punch` keeps the interface intentionally small and supports:
 
 - one caption field
+- GIF-safe duration limits
+- image and video inputs
+
+`classic-remix` is tuned for editing existing memes:
+
+- top + bottom replacement text fields
+- automatic masking of common top/bottom text zones
 - GIF-safe duration limits
 - image and video inputs
 

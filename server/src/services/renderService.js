@@ -10,6 +10,15 @@ function formatNumber(value) {
   return Number(value).toFixed(3).replace(/\.0+$/, '').replace(/(\.\d*[1-9])0+$/, '$1');
 }
 
+function normalizeCleanupRatio(value, fallback = 0.2) {
+  const parsedValue = Number(value);
+  if (!Number.isFinite(parsedValue)) {
+    return fallback;
+  }
+
+  return clamp(parsedValue, 0.05, 0.45);
+}
+
 class RenderService {
   constructor(env) {
     this.env = env;
@@ -134,6 +143,7 @@ class RenderService {
       `trim=duration=${formatNumber(durationSeconds)}`,
       'setpts=PTS-STARTPTS',
     ];
+    const cleanupFilters = this.createCleanupFilters(preset);
 
     const drawtextFilters = [];
     const overlaySpecs = [
@@ -159,7 +169,7 @@ class RenderService {
       }
     }
 
-    const baseChain = [...baseFilter, ...drawtextFilters].join(',');
+    const baseChain = [...baseFilter, ...cleanupFilters, ...drawtextFilters].join(',');
     const maxColors = exportProfile.maxColors || 128;
 
     return [
@@ -202,6 +212,25 @@ class RenderService {
     }
 
     return base.join(':');
+  }
+
+  createCleanupFilters(preset) {
+    const masks = Array.isArray(preset.cleanupMasks) ? preset.cleanupMasks : [];
+
+    return masks
+      .map((mask) => {
+        const position = String(mask.position || '').toLowerCase();
+        const ratio = normalizeCleanupRatio(mask.heightRatio);
+        const height = `max(1\\,round(ih*${formatNumber(ratio)}))`;
+        const y = position === 'bottom' ? `ih-${height}` : position === 'top' ? '0' : null;
+
+        if (!y) {
+          return null;
+        }
+
+        return `drawbox=x=0:y=${y}:w=iw:h=${height}:color=${mask.color || 'black@1.0'}:t=fill`;
+      })
+      .filter(Boolean);
   }
 
   resolveYExpression(position, height) {

@@ -9,6 +9,11 @@ import { apiFetch } from './lib/api';
 import { buildTrimState, normalizeVideoTrim } from './lib/trim';
 
 const DEFAULT_PRESET_ID = 'caption-punch';
+const REMIX_PRESET_ID = 'classic-remix';
+const EDITOR_MODES = {
+  CAPTION: 'caption',
+  REMIX: 'remix',
+};
 const loadingHints = [
   'Waking up the editor…',
   'Rendering your GIF…',
@@ -18,6 +23,7 @@ const loadingHints = [
 function App() {
   const [presets, setPresets] = useState([]);
   const [featuredGifs, setFeaturedGifs] = useState([]);
+  const [editorMode, setEditorMode] = useState(EDITOR_MODES.CAPTION);
   const [mediaSource, setMediaSource] = useState('search');
   const [media, setMedia] = useState({ file: null, mediaUrl: '', previewUrl: '', mediaType: '' });
   const [sourceDuration, setSourceDuration] = useState(null);
@@ -35,9 +41,14 @@ function App() {
   const [isBooting, setIsBooting] = useState(true);
   const [loadingHintIndex, setLoadingHintIndex] = useState(0);
 
+  const activePresetId = editorMode === EDITOR_MODES.REMIX ? REMIX_PRESET_ID : DEFAULT_PRESET_ID;
   const selectedPreset = useMemo(
-    () => presets.find((preset) => preset.id === DEFAULT_PRESET_ID) || null,
-    [presets],
+    () =>
+      presets.find((preset) => preset.id === activePresetId) ||
+      presets.find((preset) => preset.id === DEFAULT_PRESET_ID) ||
+      presets[0] ||
+      null,
+    [presets, activePresetId],
   );
   const activeLoadingHint = loadingHints[loadingHintIndex] || loadingHints[0];
 
@@ -119,6 +130,11 @@ function App() {
       ),
     }));
   }, [selectedPreset, sourceDuration]);
+
+  useEffect(() => {
+    setRenderResult(null);
+    setError('');
+  }, [editorMode]);
 
   useEffect(() => {
     return () => {
@@ -206,6 +222,8 @@ function App() {
 
     const formData = new FormData();
     formData.append('presetId', selectedPreset.id);
+    formData.append('topText', editor.topText);
+    formData.append('bottomText', editor.bottomText);
     formData.append('caption', editor.caption);
     formData.append('durationSeconds', String(videoTrim?.durationSeconds || editor.durationSeconds));
 
@@ -257,6 +275,29 @@ function App() {
                 error={gifDiscoveryError}
                 onSelect={handleGifSelect}
               />
+
+              <div className="mode-switch" role="tablist" aria-label="Editing mode">
+                <button
+                  type="button"
+                  className={`source-tab ${editorMode === EDITOR_MODES.CAPTION ? 'active' : ''}`}
+                  onClick={() => setEditorMode(EDITOR_MODES.CAPTION)}
+                >
+                  Quick caption
+                </button>
+                <button
+                  type="button"
+                  className={`source-tab ${editorMode === EDITOR_MODES.REMIX ? 'active' : ''}`}
+                  onClick={() => setEditorMode(EDITOR_MODES.REMIX)}
+                >
+                  Remix a meme
+                </button>
+              </div>
+
+              <p className="support-copy mode-summary">
+                {editorMode === EDITOR_MODES.REMIX
+                  ? 'Remix mode covers common top/bottom text zones, then lays in your own copy.'
+                  : 'Caption mode keeps the source visible and adds one strong caption.'}
+              </p>
 
               <div className="source-switch" role="tablist" aria-label="Media source">
                 <button

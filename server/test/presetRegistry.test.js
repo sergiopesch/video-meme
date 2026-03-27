@@ -4,8 +4,11 @@ const { listPresets, getDefaultPreset, getPresetById } = require('../src/presets
 
 test('preset registry returns structured metadata for the editor', () => {
   const presets = listPresets();
+  const presetIds = presets.map((preset) => preset.id);
 
-  assert.equal(presets.length, 1);
+  assert.ok(presets.length >= 2);
+  assert.ok(presetIds.includes('caption-punch'));
+  assert.ok(presetIds.includes('classic-remix'));
   assert.equal(getDefaultPreset().id, presets[0].id);
   assert.equal(getDefaultPreset().id, 'caption-punch');
 
@@ -27,12 +30,18 @@ test('preset registry returns structured metadata for the editor', () => {
     assert.equal(preset.export?.hasAudio, false);
 
     for (const slot of preset.textSlots) {
-      assert.equal(slot.id, 'caption');
+      assert.ok(['caption', 'topText', 'bottomText'].includes(slot.id));
       assert.ok(slot.maxLength > 0);
     }
   }
 
   assert.equal(getPresetById('caption-punch')?.name, 'Caption Punch');
+  assert.deepEqual(getPresetById('caption-punch')?.textSlots.map((slot) => slot.id), ['caption']);
+
+  const remixPreset = getPresetById('classic-remix');
+  assert.equal(remixPreset?.name, 'Classic Remix');
+  assert.deepEqual(remixPreset?.textSlots.map((slot) => slot.id), ['topText', 'bottomText']);
+  assert.equal(remixPreset?.cleanupMasks?.length, 2);
 });
 
 test('preset selectors return defensive copies of nested metadata', () => {

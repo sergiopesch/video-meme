@@ -54,7 +54,8 @@ test('API exposes presets and renders a meme through the HTTP boundary', async (
 
     assert.ok(Array.isArray(presetsPayload.presets));
     assert.equal(presetsPayload.defaultPresetId, 'caption-punch');
-    assert.equal(presetsPayload.presets.length, 1);
+    assert.ok(presetsPayload.presets.length >= 2);
+    assert.ok(presetsPayload.presets.some((preset) => preset.id === 'classic-remix'));
     assert.ok(presetsPayload.presets.every((preset) => preset.export?.format === 'gif'));
 
     const imagePath = await createSampleImage(path.join(harness.rootDir, 'request.png'));
