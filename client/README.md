@@ -1,12 +1,29 @@
-# React + Vite
+# Video Meme Editor Client
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + Vite editor for the deterministic meme rendering API.
 
-Currently, two official plugins are available:
+## What changed
+- the UI now behaves like a meme editor, not an AI demo
+- presets are fetched from the API
+- uploads support images and videos
+- trim controls appear for video input
+- render output is previewable and downloadable
+- API URLs are resolved through a helper instead of hardcoded localhost strings
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Dev notes
 
-## Expanding the ESLint configuration
+### Default local flow
+Vite proxies `/api` and `/output` to `http://127.0.0.1:5000` during development.
 
-If you are developing a production application, we recommend using TypeScript and enable type-aware lint rules. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### When the API lives elsewhere
+Set:
+
+```bash
+VITE_API_BASE_URL=https://your-api.example.com
+```
+
+Or override the local proxy target:
+
+```bash
+VITE_API_PROXY_TARGET=http://127.0.0.1:5000
+```

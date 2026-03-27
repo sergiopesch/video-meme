@@ -1,93 +1,73 @@
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 
-const ImageUploader = ({ onUpload }) => {
-    const [previewUrl, setPreviewUrl] = useState(null);
-    const [isDragging, setIsDragging] = useState(false);
-    const fileInputRef = useRef(null);
+const ImageUploader = ({ media, onChange, onVideoMetadata }) => {
+  const inputRef = useRef(null);
 
-    const handleFileChange = (e) => {
-        const file = e.target.files[0];
-        if (file && file.type.startsWith('image/')) {
-            processFile(file);
-        }
-    };
+  const updateFile = (file) => {
+    if (!file) {
+      return;
+    }
 
-    const handleDragOver = (e) => {
-        e.preventDefault();
-        setIsDragging(true);
-    };
+    const mediaType = file.type.startsWith('video/') ? 'video' : 'image';
+    const previewUrl = URL.createObjectURL(file);
+    onChange({ file, previewUrl, mediaType });
+  };
 
-    const handleDragLeave = () => {
-        setIsDragging(false);
-    };
+  const handleDrop = (event) => {
+    event.preventDefault();
+    updateFile(event.dataTransfer.files?.[0]);
+  };
 
-    const handleDrop = (e) => {
-        e.preventDefault();
-        setIsDragging(false);
+  return (
+    <section className="panel-section">
+      <div className="section-heading">
+        <h2>2. Upload source media</h2>
+        <p>Use a still image for a quick meme loop or a short video clip when timing matters.</p>
+      </div>
 
-        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-            const file = e.dataTransfer.files[0];
-            if (file.type.startsWith('image/')) {
-                processFile(file);
-            }
-        }
-    };
-
-    const processFile = (file) => {
-        const reader = new FileReader();
-        reader.onload = () => {
-            setPreviewUrl(reader.result);
-            onUpload(file);
-        };
-        reader.readAsDataURL(file);
-    };
-
-    const triggerFileInput = () => {
-        fileInputRef.current.click();
-    };
-
-    return (
-        <div className="image-uploader">
-            <h2>Step 2: Upload Your Face Image</h2>
-
-            <div
-                className={`upload-area ${isDragging ? 'dragging' : ''} ${previewUrl ? 'has-image' : ''}`}
-                onClick={triggerFileInput}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
-                onDrop={handleDrop}
-            >
-                {previewUrl ? (
-                    <div className="image-preview">
-                        <img src={previewUrl} alt="Preview" />
-                    </div>
-                ) : (
-                    <div className="upload-prompt">
-                        <div className="upload-icon">📷</div>
-                        <p>Click to browse or drag an image here</p>
-                        <span className="file-hint">JPG, PNG, or GIF • Max 5MB</span>
-                    </div>
-                )}
-            </div>
-
-            <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileChange}
-                accept="image/*"
-                style={{ display: 'none' }}
+      <div
+        className={`upload-surface ${media.previewUrl ? 'has-preview' : ''}`}
+        onClick={() => inputRef.current?.click()}
+        onDragOver={(event) => event.preventDefault()}
+        onDrop={handleDrop}
+        role="presentation"
+      >
+        {media.previewUrl ? (
+          media.mediaType === 'video' ? (
+            <video
+              src={media.previewUrl}
+              controls
+              className="upload-preview"
+              onLoadedMetadata={(event) => onVideoMetadata(event.currentTarget.duration)}
             />
+          ) : (
+            <img src={media.previewUrl} alt="Uploaded source" className="upload-preview" />
+          )
+        ) : (
+          <div className="upload-copy">
+            <span className="upload-icon">⬆</span>
+            <strong>Drop an image or short video clip here</strong>
+            <p>PNG, JPG, WEBP, MP4, MOV, or WEBM</p>
+          </div>
+        )}
+      </div>
 
-            {previewUrl && (
-                <button
-                    className="change-image-btn"
-                    onClick={triggerFileInput}
-                >
-                    Change Image
-                </button>
-            )}
-        </div>
-    );
+      <div className="upload-actions">
+        <button type="button" className="secondary-button" onClick={() => inputRef.current?.click()}>
+          {media.previewUrl ? 'Replace media' : 'Choose file'}
+        </button>
+        {media.file && <span className="file-meta">{media.file.name}</span>}
+      </div>
+
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*,video/*"
+        hidden
+        onChange={(event) => updateFile(event.target.files?.[0])}
+      />
+    </section>
+  );
 };
 
-export default ImageUploader; 
+export default ImageUploader;

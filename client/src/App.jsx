@@ -1,201 +1,294 @@
-import { useState, useEffect } from 'react'
-import './App.css'
-import MemeSelector from './components/MemeSelector'
-import ImageUploader from './components/ImageUploader'
-import MemePreview from './components/MemePreview'
+import { useEffect, useMemo, useState } from 'react';
+import './App.css';
+import MemeSelector from './components/MemeSelector';
+import ImageUploader from './components/ImageUploader';
+import MemePreview from './components/MemePreview';
+import TextInputs from './components/TextInputs';
+import TrimControls from './components/TrimControls';
+import { apiFetch } from './lib/api';
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
 
 function App() {
-  const [selectedMeme, setSelectedMeme] = useState(null);
-  const [userImage, setUserImage] = useState(null);
-  const [generatedMeme, setGeneratedMeme] = useState(null);
+  const [presets, setPresets] = useState([]);
+  const [selectedPresetId, setSelectedPresetId] = useState('');
+  const [media, setMedia] = useState({ file: null, previewUrl: '', mediaType: '' });
+  const [sourceDuration, setSourceDuration] = useState(null);
+  const [editor, setEditor] = useState({
+    topText: '',
+    bottomText: '',
+    caption: '',
+    startSeconds: 0,
+    durationSeconds: 4,
+  });
+  const [renderResult, setRenderResult] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [processingMethod, setProcessingMethod] = useState(null);
-  const [aiAvailable, setAiAvailable] = useState(false);
-  const [processingProgress, setProcessingProgress] = useState(0);
+  const [error, setError] = useState('');
+  const [isBooting, setIsBooting] = useState(true);
 
-  // Check if Segmind AI is available
+  const selectedPreset = useMemo(
+    () => presets.find((preset) => preset.id === selectedPresetId) || null,
+    [presets, selectedPresetId],
+  );
+
   useEffect(() => {
-    async function checkAIStatus() {
+    let cancelled = false;
+
+    async function loadPresets() {
       try {
-        const response = await fetch('http://localhost:5000/ai-status');
-        const data = await response.json();
-        setAiAvailable(data.available);
-        console.log('AI API status:', data.message);
-      } catch (err) {
-        console.error('Error checking AI status:', err);
-        setAiAvailable(false);
+        const response = await apiFetch('/api/templates');
+        const payload = await response.json();
+
+        if (!response.ok) {
+          throw new Error(payload.error || 'Failed to load presets.');
+        }
+
+        if (cancelled) {
+          return;
+        }
+
+        setPresets(payload.presets || []);
+        setSelectedPresetId(payload.defaultPresetId || payload.presets?.[0]?.id || '');
+      } catch (loadError) {
+        if (!cancelled) {
+          setError(loadError.message);
+        }
+      } finally {
+        if (!cancelled) {
+          setIsBooting(false);
+        }
       }
     }
 
-    checkAIStatus();
+    loadPresets();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  // Simulate progress to give user feedback during long processes
   useEffect(() => {
-    let interval;
-
-    if (isLoading) {
-      setProcessingProgress(0);
-
-      // Simulate progress - Wan2.1 is slower so we use a longer time estimate
-      const totalTime = aiAvailable ? 120000 : 30000; // 2 minutes for Wan2.1, 30 seconds for fallbacks
-      const interval = setInterval(() => {
-        setProcessingProgress(prev => {
-          // Cap at 95% until we get actual completion
-          if (prev >= 95) {
-            clearInterval(interval);
-            return 95;
-          }
-          return prev + (100 / (totalTime / 1000));
-        });
-      }, 1000);
-
-      return () => clearInterval(interval);
+    if (!selectedPreset) {
+      return;
     }
-  }, [isLoading, aiAvailable]);
 
-  const handleMemeSelect = (meme) => {
-    setSelectedMeme(meme);
-    setGeneratedMeme(null);
-    setProcessingMethod(null);
+    setEditor((current) => {
+      const maxDuration = sourceDuration
+        ? Math.min(selectedPreset.trim.maxDurationSeconds, sourceDuration)
+        : selectedPreset.trim.maxDurationSeconds;
+
+      return {
+        ...current,
+        durationSeconds: clamp(
+          current.durationSeconds || selectedPreset.trim.defaultDurationSeconds,
+          selectedPreset.trim.minDurationSeconds,
+          maxDuration,
+        ),
+      };
+    });
+  }, [selectedPreset, sourceDuration]);
+
+  useEffect(() => {
+    return () => {
+      if (media.previewUrl) {
+        URL.revokeObjectURL(media.previewUrl);
+      }
+    };
+  }, [media.previewUrl]);
+
+  const handlePresetSelect = (presetId) => {
+    setSelectedPresetId(presetId);
+    setRenderResult(null);
   };
 
-  const handleImageUpload = (image) => {
-    setUserImage(image);
-    setGeneratedMeme(null);
-    setProcessingMethod(null);
+  const handleMediaChange = ({ file, previewUrl, mediaType }) => {
+    if (media.previewUrl) {
+      URL.revokeObjectURL(media.previewUrl);
+    }
+
+    setMedia({ file, previewUrl, mediaType });
+    setSourceDuration(null);
+    setRenderResult(null);
+    setError('');
   };
 
-  const generateMeme = async () => {
-    if (!selectedMeme || !userImage) {
-      setError('Please select a meme template and upload your image');
+  const handleTextChange = (field, value) => {
+    setEditor((current) => ({
+      ...current,
+      [field]: value,
+    }));
+    setRenderResult(null);
+  };
+
+  const handleTrimChange = (field, value) => {
+    const numericValue = Number(value);
+
+    setEditor((current) => ({
+      ...current,
+      [field]: Number.isFinite(numericValue) ? numericValue : 0,
+    }));
+    setRenderResult(null);
+  };
+
+  const handleVideoMetadata = (duration) => {
+    if (!Number.isFinite(duration) || duration <= 0) {
+      return;
+    }
+
+    setSourceDuration(duration);
+    setEditor((current) => {
+      if (!selectedPreset) {
+        return current;
+      }
+
+      const maxDuration = Math.min(selectedPreset.trim.maxDurationSeconds, duration);
+      const safeStart = clamp(current.startSeconds, 0, Math.max(duration - selectedPreset.trim.minDurationSeconds, 0));
+      const safeDuration = clamp(
+        current.durationSeconds || selectedPreset.trim.defaultDurationSeconds,
+        selectedPreset.trim.minDurationSeconds,
+        Math.max(selectedPreset.trim.minDurationSeconds, duration - safeStart),
+      );
+
+      return {
+        ...current,
+        startSeconds: safeStart,
+        durationSeconds: Math.min(safeDuration, maxDuration),
+      };
+    });
+  };
+
+  const renderMeme = async () => {
+    if (!selectedPreset || !media.file) {
+      setError('Pick a preset and upload an image or short video clip first.');
       return;
     }
 
     setIsLoading(true);
-    setError(null);
-    setProcessingProgress(0);
+    setError('');
+
+    const formData = new FormData();
+    formData.append('presetId', selectedPreset.id);
+    formData.append('topText', editor.topText);
+    formData.append('bottomText', editor.bottomText);
+    formData.append('caption', editor.caption);
+    formData.append('durationSeconds', String(editor.durationSeconds));
+
+    if (media.mediaType === 'video') {
+      formData.append('startSeconds', String(editor.startSeconds));
+    }
+
+    formData.append('media', media.file);
 
     try {
-      const formData = new FormData();
-      formData.append('template', selectedMeme);
-      formData.append('image', userImage);
-
-      // Add settings as JSON string
-      const settings = {
-        // Default settings if needed
-      };
-      formData.append('settings', JSON.stringify(settings));
-
-      const response = await fetch('http://localhost:5000/generate-meme', {
+      const response = await apiFetch('/api/renders', {
         method: 'POST',
         body: formData,
       });
-
-      const data = await response.json();
+      const payload = await response.json();
 
       if (!response.ok) {
-        // Extract detailed error message from the server response if available
-        const errorMessage = data.details || data.error || 'Failed to generate meme';
-        throw new Error(errorMessage);
+        throw new Error(payload.error || 'Render failed.');
       }
 
-      setGeneratedMeme(data.url);
-      setProcessingMethod(data.method || 'unknown');
-      setProcessingProgress(100);
-    } catch (err) {
-      console.error('Error generating meme:', err);
-      // Check for common API errors
-      let errorMsg = err.message;
-      if (errorMsg.includes('401') || errorMsg.includes('Unauthorized')) {
-        errorMsg = 'API key is invalid or missing. Please check your Segmind API key in the server/.env file.';
-      } else if (errorMsg.includes('429') || errorMsg.includes('rate limit')) {
-        errorMsg = 'API rate limit exceeded. Please try again later.';
-      }
-      setError(`Error: ${errorMsg}`);
+      setRenderResult(payload);
+    } catch (renderError) {
+      setError(renderError.message);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Get processing method description
-  const getProcessingDescription = () => {
-    if (!processingMethod) return '';
-
-    switch (processingMethod) {
-      case 'segmind':
-        return 'using Segmind AI for realistic video animation';
-      case 'ffmpeg':
-        return 'using basic image overlay';
-      default:
-        return '';
-    }
-  };
+  const activeTextSlots = selectedPreset?.textSlots || [];
+  const trimMaxDuration = selectedPreset
+    ? Math.min(selectedPreset.trim.maxDurationSeconds, sourceDuration || selectedPreset.trim.maxDurationSeconds)
+    : 0;
 
   return (
-    <div className="app-container">
-      <header>
-        <h1>Video Meme Generator</h1>
-        <p>Create your own Lil Yachty or PSY entrance meme!</p>
-        {aiAvailable && (
-          <div className="wan21-badge">
-            <span className="badge">Segmind AI Enabled</span>
-          </div>
-        )}
+    <div className="app-shell">
+      <header className="hero">
+        <div>
+          <span className="eyebrow">Deterministic render pipeline</span>
+          <h1>Video Meme Editor</h1>
+          <p>
+            Upload an image or a short clip, drop in captions, trim the moment, and render a shareable MP4.
+          </p>
+        </div>
       </header>
 
-      <main>
-        <div className="meme-creation-container">
-          <MemeSelector onSelect={handleMemeSelect} selectedMeme={selectedMeme} />
+      <main className="layout">
+        <section className="editor-panel card">
+          {isBooting ? (
+            <p>Loading presets…</p>
+          ) : (
+            <>
+              <MemeSelector
+                presets={presets}
+                selectedPresetId={selectedPresetId}
+                onSelect={handlePresetSelect}
+              />
 
-          <ImageUploader onUpload={handleImageUpload} />
+              <ImageUploader
+                media={media}
+                onChange={handleMediaChange}
+                onVideoMetadata={handleVideoMetadata}
+              />
 
-          <button
-            onClick={generateMeme}
-            disabled={!selectedMeme || !userImage || isLoading}
-            className="generate-button"
-          >
-            {isLoading ? 'Generating Meme...' : 'Generate Meme'}
-          </button>
+              <TextInputs
+                slots={activeTextSlots}
+                values={editor}
+                onChange={handleTextChange}
+              />
 
-          {error && <div className="error-message">{error}</div>}
+              <TrimControls
+                visible={media.mediaType === 'video'}
+                startSeconds={editor.startSeconds}
+                durationSeconds={editor.durationSeconds}
+                onChange={handleTrimChange}
+                maxDuration={trimMaxDuration}
+                sourceDuration={sourceDuration}
+              />
 
-          {isLoading && (
-            <div className="loading-message">
-              <p>
-                {aiAvailable
-                  ? 'Please wait while we generate your meme with Segmind AI. This process may take 1-2 minutes as we create realistic video movement.'
-                  : 'Processing your meme. This should take less than a minute.'}
-              </p>
-              <div className="progress-bar">
-                <div
-                  className="progress-fill"
-                  style={{ width: `${processingProgress}%` }}
-                ></div>
-              </div>
-              <p className="progress-text">{Math.round(processingProgress)}% Complete</p>
-            </div>
+              {selectedPreset && (
+                <div className="preset-summary">
+                  <div>
+                    <span className="summary-label">Output</span>
+                    <strong>
+                      {selectedPreset.output.width}×{selectedPreset.output.height} @ {selectedPreset.output.fps}fps
+                    </strong>
+                  </div>
+                  <div>
+                    <span className="summary-label">Default duration</span>
+                    <strong>{selectedPreset.trim.defaultDurationSeconds}s</strong>
+                  </div>
+                  <div>
+                    <span className="summary-label">Tags</span>
+                    <strong>{selectedPreset.tags.join(' • ')}</strong>
+                  </div>
+                </div>
+              )}
+
+              <button
+                className="primary-button"
+                type="button"
+                onClick={renderMeme}
+                disabled={isLoading || !selectedPreset || !media.file}
+              >
+                {isLoading ? 'Rendering meme video…' : 'Render meme video'}
+              </button>
+
+              {error && <p className="error-banner">{error}</p>}
+            </>
           )}
-        </div>
+        </section>
 
-        {generatedMeme && (
-          <>
-            <MemePreview memeUrl={generatedMeme} />
-            {processingMethod && (
-              <div className="processing-info">
-                <p>Meme generated successfully {getProcessingDescription()}</p>
-              </div>
-            )}
-          </>
-        )}
+        <aside className="preview-panel card">
+          <MemePreview result={renderResult} selectedPreset={selectedPreset} isLoading={isLoading} />
+        </aside>
       </main>
-
-      <footer>
-        <p>© 2025 Video Meme Generator | Created by Sergio Peschiera</p>
-      </footer>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;

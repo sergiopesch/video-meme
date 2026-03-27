@@ -1,0 +1,80 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const path = require('path');
+const { RenderService } = require('../src/services/renderService');
+const { probeMedia } = require('../src/services/ffmpegService');
+const { getPresetById } = require('../src/presets/presetRegistry');
+const {
+  createTempHarness,
+  createSampleImage,
+  createSampleVideo,
+  createUploadedFile,
+} = require('../test-support/helpers');
+
+test('RenderService renders an image into an MP4 meme clip', async () => {
+  const harness = await createTempHarness();
+
+  try {
+    const imagePath = await createSampleImage(path.join(harness.rootDir, 'input.png'));
+    const renderService = new RenderService(harness.env);
+
+    const result = await renderService.render({
+      preset: getPresetById('classic-impact'),
+      presetId: 'classic-impact',
+      inputType: 'image',
+      mediaPath: imagePath,
+      topText: 'BUILD SHIPPED',
+      bottomText: 'NO REGRETS',
+      caption: '',
+      startSeconds: 0,
+      durationSeconds: 3,
+    });
+
+    assert.equal(result.success, true);
+    assert.equal(result.render.inputType, 'image');
+    assert.match(result.outputUrl, /^\/output\/meme-.*\.mp4$/);
+
+    const outputPath = path.join(harness.env.paths.outputDir, path.basename(result.outputUrl));
+    const probe = await probeMedia(harness.env.ffprobeBin, outputPath);
+    const duration = Number(probe.format.duration);
+
+    assert.ok(duration >= 2.8 && duration <= 3.2, `unexpected duration ${duration}`);
+    assert.equal(probe.streams.find((stream) => stream.codec_type === 'video').width, 1080);
+  } finally {
+    await harness.cleanup();
+  }
+});
+
+test('RenderService trims video input and keeps it within the requested range', async () => {
+  const harness = await createTempHarness();
+
+  try {
+    const videoPath = await createSampleVideo(path.join(harness.rootDir, 'input.mp4'));
+    const renderService = new RenderService(harness.env);
+
+    const result = await renderService.render({
+      preset: getPresetById('caption-punch'),
+      presetId: 'caption-punch',
+      inputType: 'video',
+      mediaPath: videoPath,
+      topText: 'WHEN PROD IS CALM',
+      bottomText: '',
+      caption: '...for about three minutes.',
+      startSeconds: 1,
+      durationSeconds: 1.5,
+    });
+
+    assert.equal(result.success, true);
+    assert.equal(result.render.inputType, 'video');
+    assert.ok(result.render.sourceDurationSeconds >= 2.9);
+
+    const outputPath = path.join(harness.env.paths.outputDir, path.basename(result.outputUrl));
+    const probe = await probeMedia(harness.env.ffprobeBin, outputPath);
+    const duration = Number(probe.format.duration);
+
+    assert.ok(duration >= 1.3 && duration <= 1.8, `unexpected duration ${duration}`);
+    assert.equal(probe.streams.find((stream) => stream.codec_type === 'video').width, 1280);
+  } finally {
+    await harness.cleanup();
+  }
+});
