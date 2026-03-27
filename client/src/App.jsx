@@ -6,10 +6,7 @@ import MemePreview from './components/MemePreview';
 import TextInputs from './components/TextInputs';
 import TrimControls from './components/TrimControls';
 import { apiFetch } from './lib/api';
-
-function clamp(value, min, max) {
-  return Math.min(Math.max(value, min), max);
-}
+import { buildTrimState, clamp, normalizeVideoTrim } from './lib/trim';
 
 function App() {
   const [presets, setPresets] = useState([]);
@@ -75,20 +72,30 @@ function App() {
     }
 
     setEditor((current) => {
-      const maxDuration = sourceDuration
-        ? Math.min(selectedPreset.trim.maxDurationSeconds, sourceDuration)
-        : selectedPreset.trim.maxDurationSeconds;
+      if (media.mediaType === 'video') {
+        return {
+          ...current,
+          ...normalizeVideoTrim(
+            {
+              startSeconds: current.startSeconds,
+              durationSeconds: current.durationSeconds || selectedPreset.trim.defaultDurationSeconds,
+            },
+            selectedPreset,
+            sourceDuration,
+          ),
+        };
+      }
 
       return {
         ...current,
         durationSeconds: clamp(
           current.durationSeconds || selectedPreset.trim.defaultDurationSeconds,
           selectedPreset.trim.minDurationSeconds,
-          maxDuration,
+          selectedPreset.trim.maxDurationSeconds,
         ),
       };
     });
-  }, [selectedPreset, sourceDuration]);
+  }, [media.mediaType, selectedPreset, sourceDuration]);
 
   useEffect(() => {
     return () => {
@@ -125,10 +132,21 @@ function App() {
   const handleTrimChange = (field, value) => {
     const numericValue = Number(value);
 
-    setEditor((current) => ({
-      ...current,
-      [field]: Number.isFinite(numericValue) ? numericValue : 0,
-    }));
+    setEditor((current) => {
+      const next = {
+        ...current,
+        [field]: Number.isFinite(numericValue) ? numericValue : 0,
+      };
+
+      if (media.mediaType !== 'video') {
+        return next;
+      }
+
+      return {
+        ...current,
+        ...normalizeVideoTrim(next, selectedPreset, sourceDuration),
+      };
+    });
     setRenderResult(null);
   };
 
@@ -143,21 +161,32 @@ function App() {
         return current;
       }
 
-      const maxDuration = Math.min(selectedPreset.trim.maxDurationSeconds, duration);
-      const safeStart = clamp(current.startSeconds, 0, Math.max(duration - selectedPreset.trim.minDurationSeconds, 0));
-      const safeDuration = clamp(
-        current.durationSeconds || selectedPreset.trim.defaultDurationSeconds,
-        selectedPreset.trim.minDurationSeconds,
-        Math.max(selectedPreset.trim.minDurationSeconds, duration - safeStart),
-      );
-
       return {
         ...current,
-        startSeconds: safeStart,
-        durationSeconds: Math.min(safeDuration, maxDuration),
+        ...normalizeVideoTrim(
+          {
+            startSeconds: current.startSeconds,
+            durationSeconds: current.durationSeconds || selectedPreset.trim.defaultDurationSeconds,
+          },
+          selectedPreset,
+          duration,
+        ),
       };
     });
   };
+
+  const videoTrim = useMemo(() => {
+    if (media.mediaType !== 'video' || !selectedPreset) {
+      return null;
+    }
+
+    return buildTrimState({
+      preset: selectedPreset,
+      sourceDuration,
+      startSeconds: editor.startSeconds,
+      durationSeconds: editor.durationSeconds || selectedPreset.trim.defaultDurationSeconds,
+    });
+  }, [media.mediaType, selectedPreset, sourceDuration, editor.startSeconds, editor.durationSeconds]);
 
   const renderMeme = async () => {
     if (!selectedPreset || (!media.file && !media.mediaUrl)) {
@@ -173,10 +202,10 @@ function App() {
     formData.append('topText', editor.topText);
     formData.append('bottomText', editor.bottomText);
     formData.append('caption', editor.caption);
-    formData.append('durationSeconds', String(editor.durationSeconds));
+    formData.append('durationSeconds', String(videoTrim?.durationSeconds || editor.durationSeconds));
 
     if (media.mediaType === 'video') {
-      formData.append('startSeconds', String(editor.startSeconds));
+      formData.append('startSeconds', String(videoTrim?.startSeconds || editor.startSeconds));
     }
 
     if (media.file) {
@@ -205,9 +234,6 @@ function App() {
   };
 
   const activeTextSlots = selectedPreset?.textSlots || [];
-  const trimMaxDuration = selectedPreset
-    ? Math.min(selectedPreset.trim.maxDurationSeconds, sourceDuration || selectedPreset.trim.maxDurationSeconds)
-    : 0;
 
   return (
     <div className="app-shell">
@@ -247,11 +273,9 @@ function App() {
 
               <TrimControls
                 visible={media.mediaType === 'video'}
-                startSeconds={editor.startSeconds}
-                durationSeconds={editor.durationSeconds}
+                trim={videoTrim}
                 onChange={handleTrimChange}
-                maxDuration={trimMaxDuration}
-                sourceDuration={sourceDuration}
+                presetTrim={selectedPreset?.trim}
               />
 
               {selectedPreset && (
