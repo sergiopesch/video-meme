@@ -9,9 +9,9 @@ import { apiFetch } from './lib/api';
 import { buildTrimState, clamp, normalizeVideoTrim } from './lib/trim';
 
 const loadingHints = [
-  'Waking up the render engine and loading the preset stack…',
-  'Packing your clip into a phone-friendly GIF window…',
-  'Running FFmpeg and squeezing the file for easy sharing…',
+  'Waking up the editor…',
+  'Rendering your GIF…',
+  'Finishing the export…',
 ];
 
 function App() {
@@ -269,19 +269,17 @@ function App() {
     <div className="app-shell">
       <header className="hero">
         <div>
-          <span className="eyebrow">Mobile-share GIF pipeline</span>
+          <span className="eyebrow">Video Meme</span>
           <h1>GIF Meme Editor</h1>
           <p>
-            Upload an image or short clip, or paste a direct media or YouTube URL, then add captions, trim the beat,
-            and export an optimized GIF for phone sharing. No audio, no fake promises.
+            Pick a style, add a clip or image, write your text, and export a shareable GIF.
           </p>
         </div>
       </header>
 
       {isHostedEnvironment && (
         <section className="hosting-note card" aria-label="Hosting note">
-          <strong>Free-hosted mode:</strong> the app can take up to a minute to wake up after sitting idle. Keep clips
-          short and uploads light for the fastest, most fun renders on mobile.
+          <strong>Free hosting:</strong> the first load can be slow if the app has been asleep.
         </section>
       )}
 
@@ -315,27 +313,6 @@ function App() {
                 onChange={handleTrimChange}
                 presetTrim={selectedPreset?.trim}
               />
-
-              {selectedPreset && (
-                <div className="preset-summary">
-                  <div>
-                    <span className="summary-label">Output</span>
-                    <strong>
-                      {selectedPreset.export?.format?.toUpperCase() || 'GIF'} • {selectedPreset.output.width}×{selectedPreset.output.height}
-                    </strong>
-                  </div>
-                  <div>
-                    <span className="summary-label">Pacing</span>
-                    <strong>
-                      {selectedPreset.output.fps}fps • up to {selectedPreset.trim.maxDurationSeconds}s
-                    </strong>
-                  </div>
-                  <div>
-                    <span className="summary-label">Audio</span>
-                    <strong>{selectedPreset.export?.hasAudio ? 'Included' : 'Removed for GIF export'}</strong>
-                  </div>
-                </div>
-              )}
 
               <button
                 className="primary-button full-width-mobile render-button"

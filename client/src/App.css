@@ -1,14 +1,14 @@
 :root {
-  --bg: #0f172a;
-  --panel: rgba(15, 23, 42, 0.84);
-  --panel-border: rgba(148, 163, 184, 0.2);
-  --text: #e2e8f0;
-  --muted: #94a3b8;
-  --accent: #38bdf8;
-  --accent-strong: #0ea5e9;
-  --surface: #111827;
-  --error: #fca5a5;
-  --shadow: 0 24px 60px rgba(15, 23, 42, 0.35);
+  --bg: #000000;
+  --panel: #0f0f0f;
+  --panel-border: #2b2b2b;
+  --text: #ffffff;
+  --muted: #b3b3b3;
+  --accent: #ffffff;
+  --accent-strong: #d9d9d9;
+  --surface: #151515;
+  --error: #ffffff;
+  --shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
 }
 
 * {
@@ -19,9 +19,7 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background:
-    radial-gradient(circle at top, rgba(56, 189, 248, 0.18), transparent 30%),
-    linear-gradient(180deg, #020617 0%, #0f172a 100%);
+  background: var(--bg);
   color: var(--text);
 }
 
@@ -42,18 +40,19 @@ button {
 }
 
 .hero {
-  margin-bottom: 18px;
+  margin-bottom: 22px;
 }
 
 .eyebrow {
   display: inline-flex;
   padding: 6px 12px;
   border-radius: 999px;
-  background: rgba(56, 189, 248, 0.12);
-  color: #7dd3fc;
-  font-size: 0.85rem;
+  background: #111111;
+  color: #d4d4d4;
+  font-size: 0.78rem;
   letter-spacing: 0.02em;
   margin-bottom: 14px;
+  border: 1px solid #2f2f2f;
 }
 
 .hero h1 {
@@ -66,8 +65,8 @@ button {
 .hero p {
   margin: 0;
   color: var(--muted);
-  font-size: 0.98rem;
-  max-width: 62ch;
+  font-size: 1rem;
+  max-width: 32rem;
 }
 
 .layout {
@@ -81,22 +80,19 @@ button {
   margin-bottom: 16px;
   padding: 14px 16px;
   border-radius: 18px;
-  background:
-    linear-gradient(135deg, rgba(34, 197, 94, 0.12), rgba(56, 189, 248, 0.1)),
-    rgba(15, 23, 42, 0.8);
-  color: #dfffea;
+  background: #0d0d0d;
+  color: #f0f0f0;
 }
 
 .hosting-note strong {
-  color: #86efac;
+  color: #ffffff;
 }
 
 .card {
   background: var(--panel);
   border: 1px solid var(--panel-border);
-  border-radius: 24px;
+  border-radius: 22px;
   box-shadow: var(--shadow);
-  backdrop-filter: blur(16px);
 }
 
 .editor-panel {
@@ -117,17 +113,14 @@ button {
 
 .section-heading h2 {
   margin: 0 0 6px;
-  font-size: 1.1rem;
+  font-size: 1rem;
 }
 
 .section-heading p,
 .support-copy,
 .empty-state p,
 .preset-card p,
-.preset-tags,
 .file-meta,
-.summary-label,
-.result-meta span,
 .result-feedback {
   color: var(--muted);
 }
@@ -145,8 +138,8 @@ button {
   gap: 12px;
   padding: 12px;
   border-radius: 18px;
-  background: rgba(15, 23, 42, 0.72);
-  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: #111111;
+  border: 1px solid #2d2d2d;
   color: var(--text);
   overflow: hidden;
   transition: transform 0.15s ease, border-color 0.15s ease, background 0.15s ease;
@@ -154,9 +147,9 @@ button {
 
 .preset-card:hover,
 .preset-card.selected {
-  transform: translateY(-2px);
-  border-color: rgba(56, 189, 248, 0.55);
-  background: rgba(15, 23, 42, 0.92);
+  transform: translateY(-1px);
+  border-color: #ffffff;
+  background: #161616;
 }
 
 .preset-media {
@@ -165,7 +158,7 @@ button {
   border-radius: 16px;
   border: 2px solid;
   overflow: hidden;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .preset-thumbnail {
@@ -192,8 +185,8 @@ button {
   display: inline-flex;
   padding: 6px 10px;
   border-radius: 999px;
-  background: rgba(2, 6, 23, 0.74);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.82);
+  border: 1px solid rgba(255, 255, 255, 0.16);
   color: #f8fafc;
   font-size: 0.75rem;
   font-weight: 700;
@@ -222,8 +215,8 @@ button {
   display: inline-flex;
   padding: 5px 10px;
   border-radius: 999px;
-  background: rgba(56, 189, 248, 0.12);
-  color: #bae6fd;
+  background: #1b1b1b;
+  color: #f0f0f0;
   font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -234,20 +227,15 @@ button {
   margin: 0 0 8px;
 }
 
-.preset-tags {
-  display: block;
-  font-size: 0.88rem;
-}
-
 .upload-surface {
   min-height: 220px;
-  border: 1px dashed rgba(148, 163, 184, 0.45);
+  border: 1px dashed #434343;
   border-radius: 20px;
   display: grid;
   place-items: center;
   padding: 18px;
   cursor: pointer;
-  background: rgba(2, 6, 23, 0.32);
+  background: #090909;
 }
 
 .upload-surface.has-preview {
@@ -265,7 +253,7 @@ button {
   width: 56px;
   height: 56px;
   border-radius: 18px;
-  background: rgba(56, 189, 248, 0.12);
+  background: #161616;
   margin-bottom: 12px;
   font-size: 1.7rem;
 }
@@ -338,14 +326,14 @@ button {
 }
 
 .primary-button {
-  background: linear-gradient(135deg, var(--accent), var(--accent-strong));
-  color: #082f49;
+  background: #ffffff;
+  color: #000000;
 }
 
 .secondary-button {
-  background: rgba(15, 23, 42, 0.72);
+  background: #111111;
   color: var(--text);
-  border: 1px solid rgba(148, 163, 184, 0.25);
+  border: 1px solid #343434;
 }
 
 .field-grid {
@@ -372,8 +360,8 @@ button {
 .field-block textarea {
   width: 100%;
   border-radius: 14px;
-  border: 1px solid rgba(148, 163, 184, 0.25);
-  background: rgba(2, 6, 23, 0.4);
+  border: 1px solid #343434;
+  background: #0b0b0b;
   color: var(--text);
   padding: 12px 14px;
   font-size: 16px;
@@ -385,15 +373,13 @@ button {
 }
 
 .trim-summary-card,
-.trim-stats-grid,
 .trim-control-card {
-  background: rgba(2, 6, 23, 0.28);
-  border: 1px solid rgba(148, 163, 184, 0.14);
+  background: #0b0b0b;
+  border: 1px solid #2b2b2b;
   border-radius: 18px;
 }
 
-.trim-summary-card,
-.trim-stats-grid {
+.trim-summary-card {
   display: grid;
   gap: 12px;
 }
@@ -404,20 +390,8 @@ button {
 }
 
 .trim-summary-card strong,
-.trim-stats-grid strong,
 .trim-control-head strong {
   font-size: 1rem;
-}
-
-.trim-stats-grid {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  margin-top: 14px;
-}
-
-.trim-stats-grid div {
-  padding: 14px;
-  border-radius: 16px;
-  background: rgba(15, 23, 42, 0.52);
 }
 
 .trim-window-visual {
@@ -428,8 +402,8 @@ button {
   position: relative;
   height: 16px;
   border-radius: 999px;
-  background: rgba(15, 23, 42, 0.78);
-  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: #111111;
+  border: 1px solid #2d2d2d;
   overflow: hidden;
 }
 
@@ -438,8 +412,8 @@ button {
   top: 2px;
   bottom: 2px;
   border-radius: 999px;
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.94), rgba(14, 165, 233, 0.74));
-  box-shadow: 0 0 0 1px rgba(125, 211, 252, 0.2);
+  background: linear-gradient(135deg, #f5f5f5, #9f9f9f);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.18);
 }
 
 .trim-window-scale,
@@ -487,8 +461,8 @@ button {
 .trim-control-card input[type='number'] {
   width: 100%;
   border-radius: 14px;
-  border: 1px solid rgba(148, 163, 184, 0.25);
-  background: rgba(2, 6, 23, 0.4);
+  border: 1px solid #343434;
+  background: #0b0b0b;
   color: var(--text);
   padding: 12px 14px;
   font-size: 16px;
@@ -497,29 +471,6 @@ button {
 .trim-range:disabled {
   opacity: 0.45;
   cursor: not-allowed;
-}
-
-.preset-summary,
-.result-meta {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 12px;
-  margin-top: 16px;
-}
-
-.preset-summary div,
-.result-meta div {
-  background: rgba(2, 6, 23, 0.28);
-  border: 1px solid rgba(148, 163, 184, 0.14);
-  border-radius: 16px;
-  padding: 14px;
-}
-
-.summary-label,
-.result-meta span {
-  display: block;
-  margin-bottom: 6px;
-  font-size: 0.85rem;
 }
 
 .result-shell {
@@ -537,7 +488,7 @@ button {
 
 .empty-state {
   min-height: 240px;
-  border: 1px dashed rgba(148, 163, 184, 0.24);
+  border: 1px dashed #303030;
   border-radius: 20px;
   display: grid;
   place-items: center;
@@ -553,8 +504,8 @@ button {
   width: 42px;
   height: 42px;
   border-radius: 999px;
-  border: 4px solid rgba(56, 189, 248, 0.18);
-  border-top-color: var(--accent);
+  border: 4px solid #2f2f2f;
+  border-top-color: #ffffff;
   animation: spin 0.8s linear infinite;
 }
 
@@ -562,8 +513,9 @@ button {
   margin-top: 14px;
   padding: 14px 16px;
   border-radius: 16px;
-  background: rgba(127, 29, 29, 0.35);
+  background: #141414;
   color: var(--error);
+  border: 1px solid #3a3a3a;
 }
 
 @keyframes spin {
@@ -598,10 +550,6 @@ button {
   }
 
   .preset-summary,
-  .result-meta {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
   .full-width-mobile {
     width: auto;
   }
@@ -628,9 +576,6 @@ button {
     grid-template-columns: minmax(0, 1.15fr) minmax(340px, 0.85fr);
   }
 
-  .trim-stats-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
 }
 
 @media (max-width: 720px) {

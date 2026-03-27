@@ -16,41 +16,20 @@ const TrimControls = ({ visible, trim, onChange, presetTrim }) => {
   return (
     <section className="panel-section">
       <div className="section-heading">
-        <h2>4. Trim the clip</h2>
-        <p>Choose one short export window from the source clip. GIFs travel better on phones when the moment stays tight.</p>
+        <h2>4. Trim the moment</h2>
+        <p>Choose the part you want to turn into a GIF.</p>
       </div>
 
       <div className="trim-summary-card">
         <div>
-          <span className="summary-label">Selected window</span>
+          <span className="summary-label">Start</span>
           <strong>
-            {formatSeconds(trim.startSeconds)} → {formatSeconds(trim.endSeconds)}
+            {formatSeconds(trim.startSeconds)}
           </strong>
         </div>
         <div>
-          <span className="summary-label">Clip length</span>
+          <span className="summary-label">Length</span>
           <strong>{formatSeconds(trim.durationSeconds)}</strong>
-        </div>
-      </div>
-
-      <div className="trim-stats-grid">
-        <div>
-          <span className="summary-label">Source length</span>
-          <strong>{hasSourceDuration ? formatSeconds(trim.sourceDuration) : 'Waiting for metadata'}</strong>
-        </div>
-        <div>
-          <span className="summary-label">Preset range</span>
-          <strong>
-            {formatSeconds(trim.minDuration)} – {formatSeconds(trim.maxDuration)}
-          </strong>
-        </div>
-        <div>
-          <span className="summary-label">Remaining after export</span>
-          <strong>{trim.remainingSeconds == null ? '—' : formatSeconds(trim.remainingSeconds)}</strong>
-        </div>
-        <div>
-          <span className="summary-label">Default clip</span>
-          <strong>{formatSeconds(presetTrim.defaultDurationSeconds)}</strong>
         </div>
       </div>
 
@@ -66,8 +45,7 @@ const TrimControls = ({ visible, trim, onChange, presetTrim }) => {
         </div>
       ) : (
         <p className="support-copy">
-          If the source length can be read in the browser, the sliders clamp against the actual clip. For bounded URL
-          imports without metadata, the server still applies the final short-GIF guardrails.
+          The sliders unlock once the clip length is loaded.
         </p>
       )}
 
@@ -89,7 +67,7 @@ const TrimControls = ({ visible, trim, onChange, presetTrim }) => {
           />
           <div className="trim-control-meta">
             <span>0s</span>
-            <span>{hasSourceDuration ? `Latest start ${formatSeconds(trim.maxStart)}` : 'Awaiting clip metadata'}</span>
+            <span>{hasSourceDuration ? `Max ${formatSeconds(trim.maxStart)}` : 'Waiting for clip'}</span>
           </div>
           <input
             type="number"
@@ -118,7 +96,7 @@ const TrimControls = ({ visible, trim, onChange, presetTrim }) => {
           />
           <div className="trim-control-meta">
             <span>{formatSeconds(trim.minDuration)} min</span>
-            <span>{formatSeconds(trim.durationLimit)} max right now</span>
+            <span>{formatSeconds(trim.durationLimit)} max</span>
           </div>
           <input
             type="number"

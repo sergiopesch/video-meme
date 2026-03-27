@@ -88,10 +88,9 @@ const ImageUploader = ({ media, onChange, onVideoMetadata }) => {
   return (
     <section className="panel-section">
       <div className="section-heading">
-        <h2>2. Add source media</h2>
+        <h2>2. Add a photo or clip</h2>
         <p>
-          Upload a still image or short video clip, paste a direct media URL, or drop in a YouTube page URL for the
-          bounded import flow. Everything exports as a short, no-audio GIF tuned for phones.
+          Upload a file or paste a direct media link.
         </p>
       </div>
 
@@ -141,8 +140,8 @@ const ImageUploader = ({ media, onChange, onVideoMetadata }) => {
         ) : (
           <div className="upload-copy">
             <span className="upload-icon">⬆</span>
-            <strong>Drop an image or short video clip here</strong>
-            <p>PNG, JPG, WEBP, MP4, MOV, WEBM, or a YouTube watch/share URL</p>
+            <strong>Tap to upload</strong>
+            <p>Image or short video</p>
           </div>
         )}
       </div>
@@ -161,10 +160,10 @@ const ImageUploader = ({ media, onChange, onVideoMetadata }) => {
 
       <div className="field-grid compact url-import">
         <label className="field-block">
-          <span>Or paste a media or YouTube URL</span>
+          <span>Or paste a direct media link</span>
           <input
             type="url"
-            placeholder="https://www.youtube.com/watch?v=..."
+            placeholder="https://example.com/clip.mp4"
             value={mediaUrlInput}
             onChange={(event) => setMediaUrlInput(event.target.value)}
             onKeyDown={(event) => {
@@ -176,8 +175,7 @@ const ImageUploader = ({ media, onChange, onVideoMetadata }) => {
             inputMode="url"
           />
           <small>
-            Direct image/video files work best. YouTube support is intentionally bounded and only accepts pages that
-            expose a directly downloadable stream. The final export is still a mobile-share GIF.
+            Direct image or video files work best.
           </small>
         </label>
         <div className="url-actions">

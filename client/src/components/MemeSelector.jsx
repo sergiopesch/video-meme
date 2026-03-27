@@ -6,8 +6,8 @@ const MemeSelector = ({ presets, selectedPresetId, onSelect }) => {
   return (
     <section className="panel-section">
       <div className="section-heading">
-        <h2>1. Choose a preset</h2>
-        <p>Presets define the mobile-share GIF shape, pacing, and caption treatment.</p>
+        <h2>1. Pick a style</h2>
+        <p>Choose the layout that fits the joke.</p>
       </div>
 
       <div className="preset-grid">
@@ -21,7 +21,7 @@ const MemeSelector = ({ presets, selectedPresetId, onSelect }) => {
           >
             <div
               className="preset-media"
-              style={{ background: preset.styling.surface, borderColor: preset.styling.accentColor }}
+              style={{ background: '#161616', borderColor: selectedPresetId === preset.id ? '#ffffff' : '#3a3a3a' }}
               title={preset.thumbnail?.alt}
             >
               {preset.thumbnail?.src ? (
@@ -42,10 +42,9 @@ const MemeSelector = ({ presets, selectedPresetId, onSelect }) => {
             <div className="preset-copy">
               <div className="preset-copy-head">
                 <strong>{preset.name}</strong>
-                <span className="preset-type-pill">{preset.inputTypes.join(' / ')}</span>
+                <span className="preset-type-pill">{preset.output.width}×{preset.output.height}</span>
               </div>
               <p>{preset.description}</p>
-              <span className="preset-tags">{preset.tags.join(' • ')}</span>
             </div>
           </button>
         ))}

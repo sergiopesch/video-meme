@@ -98,8 +98,8 @@ const MemePreview = ({ result, selectedPreset, isLoading, loadingMessage }) => {
   return (
     <section className="result-shell">
       <div className="section-heading">
-        <h2>GIF preview</h2>
-        <p>{selectedPreset ? selectedPreset.name : 'Pick a preset to start shaping the edit.'}</p>
+        <h2>Preview</h2>
+        <p>{selectedPreset ? selectedPreset.name : 'Your GIF will show up here.'}</p>
       </div>
 
       {isLoading ? (
@@ -110,33 +110,14 @@ const MemePreview = ({ result, selectedPreset, isLoading, loadingMessage }) => {
       ) : result ? (
         <>
           <img src={assetUrl} alt="Rendered meme GIF preview" className="result-gif" />
-          <div className="result-meta">
-            <div>
-              <span>Format</span>
-              <strong>{output.format.toUpperCase()} • no audio</strong>
-            </div>
-            <div>
-              <span>Duration</span>
-              <strong>{result.render.durationSeconds}s</strong>
-            </div>
-            <div>
-              <span>Output</span>
-              <strong>
-                {result.render.width}×{result.render.height} @ {result.render.fps}fps
-              </strong>
-            </div>
-          </div>
-          <p className="support-copy result-support-copy">
-            This is the optimized mobile-share GIF path. It trades audio and full-video fidelity for lighter sharing.
-          </p>
           <div className="result-actions">
             {canNativeShare && (
               <button type="button" className="primary-button" onClick={handleShare}>
-                Share GIF
+                Share
               </button>
             )}
             <button type="button" className={canNativeShare ? 'secondary-button' : 'primary-button'} onClick={handleDownload}>
-              Download GIF
+              Download
             </button>
             <button type="button" className="secondary-button" onClick={handleCopy}>
               Copy link
@@ -146,7 +127,7 @@ const MemePreview = ({ result, selectedPreset, isLoading, loadingMessage }) => {
         </>
       ) : (
         <div className="empty-state">
-          <p>Your GIF appears here once the edit is ready.</p>
+          <p>Create something and it will appear here.</p>
         </div>
       )}
     </section>
