@@ -23,7 +23,7 @@ This repo is a minimal GIF remix tool:
 ### Frontend
 - one-page GIF-first editor UI
 - image/video upload with local preview
-- featured GIF discovery and GIF search through a server-side Tenor integration
+- featured GIF discovery and GIF search through a server-side GIPHY integration
 - direct image/video URL ingestion for remotely hosted assets
 - bounded YouTube page ingestion when the page exposes a directly downloadable stream URL
 - a single caption-focused editing flow
@@ -122,23 +122,22 @@ Key variables:
 
 - `PORT`
 - `MAX_UPLOAD_SIZE`
-- `TENOR_API_KEY`
-- `TENOR_CLIENT_KEY`
+- `GIPHY_API_KEY`
 - `FFMPEG_BIN`
 - `FFPROBE_BIN`
 - `FONT_PATH`
 - `VITE_API_BASE_URL`
 - `VITE_API_PROXY_TARGET`
 
-Add `TENOR_API_KEY` in Render if you want the homepage to show featured GIFs and search results.
+Add `GIPHY_API_KEY` in Render if you want the homepage to show featured GIFs and search results.
 
 ## API
 
 ### `GET /api/gifs/featured`
-Returns the current featured GIFs from Tenor when `TENOR_API_KEY` is configured.
+Returns the current trending GIFs from GIPHY when `GIPHY_API_KEY` is configured.
 
 ### `GET /api/gifs/search?q=<query>`
-Searches Tenor GIFs and returns a compact result set for the editor.
+Searches GIPHY GIFs and returns a compact result set for the editor.
 
 ### `GET /api/templates`
 Returns the active editor profile metadata.

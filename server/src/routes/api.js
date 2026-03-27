@@ -4,7 +4,7 @@ const { listPresets, getDefaultPreset } = require('../presets/presetRegistry');
 const { normalizeRenderRequest } = require('../validation/renderRequest');
 const { createUploadMiddleware, extractUploadedFile } = require('../uploads');
 const { fetchRemoteMedia } = require('../services/remoteMediaService');
-const { getFeaturedTenorGifs, searchTenorGifs } = require('../services/tenorService');
+const { getFeaturedGifs, searchGifs } = require('../services/giphyService');
 const { createHttpError } = require('../utils/errors');
 const { removeFileIfExists } = require('../utils/files');
 
@@ -53,7 +53,7 @@ function createApiRouter({ env, renderService }) {
   router.get('/meme-templates', sendPresetPayload);
   router.get('/gifs/search', async (req, res, next) => {
     try {
-      const payload = await searchTenorGifs({
+      const payload = await searchGifs({
         env,
         query: req.query.q,
         pos: req.query.pos,
@@ -66,7 +66,7 @@ function createApiRouter({ env, renderService }) {
   });
   router.get('/gifs/featured', async (_req, res, next) => {
     try {
-      const payload = await getFeaturedTenorGifs({ env });
+      const payload = await getFeaturedGifs({ env, pos: _req.query?.pos });
       res.json(payload);
     } catch (error) {
       next(error);

@@ -220,42 +220,48 @@ test('API can ingest a bounded YouTube-style page URL before rendering', async (
   }
 });
 
-test('API can search Tenor-style GIF results through the server endpoint', async () => {
+test('API can search GIPHY-style GIF results through the server endpoint', async () => {
   const harness = await createTempHarness();
   const remoteServer = http.createServer((req, res) => {
     const requestUrl = new URL(req.url, `http://127.0.0.1:${remoteServer.address().port}`);
 
     assert.equal(requestUrl.pathname, '/search');
     assert.equal(requestUrl.searchParams.get('q'), 'celebration');
-    assert.equal(requestUrl.searchParams.get('client_key'), 'video-meme-test');
+    assert.equal(requestUrl.searchParams.get('api_key'), 'test-giphy-key');
 
     res.setHeader('content-type', 'application/json');
     res.end(JSON.stringify({
-      next: 'next-page-token',
-      results: [
+      data: [
         {
-          id: 'tenor-demo',
-          content_description: 'Celebration GIF',
-          media_formats: {
-            tinygif: {
-              url: 'https://media.example.com/demo-tiny.gif',
-              dims: [220, 220],
+          id: 'giphy-demo',
+          title: 'Celebration GIF',
+          images: {
+            fixed_width_small_still: {
+              url: 'https://media.example.com/demo-still.gif',
+              width: '220',
+              height: '220',
             },
-            mp4: {
-              url: 'https://media.example.com/demo.mp4',
-              dims: [480, 480],
+            original: {
+              url: 'https://media.example.com/demo.gif',
+              mp4: 'https://media.example.com/demo.mp4',
+              width: '480',
+              height: '480',
             },
           },
         },
       ],
+      pagination: {
+        count: 1,
+        offset: 0,
+      },
     }));
   });
 
-  harness.env.tenorApiKey = 'test-tenor-key';
+  harness.env.giphyApiKey = 'test-giphy-key';
 
   try {
     const remotePort = await startServer(remoteServer);
-    harness.env.tenorApiBaseUrl = `http://127.0.0.1:${remotePort}`;
+    harness.env.giphyApiBaseUrl = `http://127.0.0.1:${remotePort}`;
 
     const app = createApp({ env: harness.env });
     const apiServer = http.createServer(app);
@@ -265,10 +271,10 @@ test('API can search Tenor-style GIF results through the server endpoint', async
     assert.equal(response.status, 200);
 
     const payload = await response.json();
-    assert.equal(payload.next, 'next-page-token');
+    assert.equal(payload.next, '1');
     assert.equal(payload.results.length, 1);
-    assert.equal(payload.results[0].id, 'tenor-demo');
-    assert.equal(payload.results[0].previewUrl, 'https://media.example.com/demo-tiny.gif');
+    assert.equal(payload.results[0].id, 'giphy-demo');
+    assert.equal(payload.results[0].previewUrl, 'https://media.example.com/demo-still.gif');
     assert.equal(payload.results[0].sourceUrl, 'https://media.example.com/demo.mp4');
     assert.equal(payload.results[0].sourceType, 'video');
 
@@ -279,40 +285,45 @@ test('API can search Tenor-style GIF results through the server endpoint', async
   }
 });
 
-test('API can fetch featured Tenor-style GIFs through the server endpoint', async () => {
+test('API can fetch featured GIPHY-style GIFs through the server endpoint', async () => {
   const harness = await createTempHarness();
   const remoteServer = http.createServer((req, res) => {
     const requestUrl = new URL(req.url, `http://127.0.0.1:${remoteServer.address().port}`);
 
-    assert.equal(requestUrl.pathname, '/featured');
+    assert.equal(requestUrl.pathname, '/trending');
 
     res.setHeader('content-type', 'application/json');
     res.end(JSON.stringify({
-      next: '',
-      results: [
+      data: [
         {
           id: 'featured-demo',
-          content_description: 'Featured GIF',
-          media_formats: {
-            tinygif: {
-              url: 'https://media.example.com/featured-tiny.gif',
-              dims: [220, 180],
+          title: 'Featured GIF',
+          images: {
+            fixed_width_small_still: {
+              url: 'https://media.example.com/featured-still.gif',
+              width: '220',
+              height: '180',
             },
-            gif: {
+            original: {
               url: 'https://media.example.com/featured.gif',
-              dims: [480, 392],
+              width: '480',
+              height: '392',
             },
           },
         },
       ],
+      pagination: {
+        count: 1,
+        offset: 0,
+      },
     }));
   });
 
-  harness.env.tenorApiKey = 'test-tenor-key';
+  harness.env.giphyApiKey = 'test-giphy-key';
 
   try {
     const remotePort = await startServer(remoteServer);
-    harness.env.tenorApiBaseUrl = `http://127.0.0.1:${remotePort}`;
+    harness.env.giphyApiBaseUrl = `http://127.0.0.1:${remotePort}`;
 
     const app = createApp({ env: harness.env });
     const apiServer = http.createServer(app);
@@ -323,7 +334,7 @@ test('API can fetch featured Tenor-style GIFs through the server endpoint', asyn
 
     const payload = await response.json();
     assert.equal(payload.results[0].id, 'featured-demo');
-    assert.equal(payload.results[0].previewUrl, 'https://media.example.com/featured-tiny.gif');
+    assert.equal(payload.results[0].previewUrl, 'https://media.example.com/featured-still.gif');
     assert.equal(payload.results[0].sourceUrl, 'https://media.example.com/featured.gif');
 
     await stopServer(apiServer);
