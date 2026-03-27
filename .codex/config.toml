@@ -1,0 +1,18 @@
+[repo]
+name = "video-meme"
+primary_language = "javascript"
+
+[workflow]
+install = "npm run install-all"
+dev = "npm run dev"
+test = "npm test"
+lint = "npm run lint"
+build = "npm run build"
+
+[paths]
+client = "client"
+server = "server"
+docs = ["README.md", "client/README.md", "server/README.md"]
+
+[notes]
+summary = "Deterministic GIF meme editor with React client and Express/FFmpeg server."

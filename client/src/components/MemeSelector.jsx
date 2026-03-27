@@ -17,6 +17,7 @@ const MemeSelector = ({ presets, selectedPresetId, onSelect }) => {
             type="button"
             className={`preset-card ${selectedPresetId === preset.id ? 'selected' : ''}`}
             onClick={() => onSelect(preset.id)}
+            aria-pressed={selectedPresetId === preset.id}
           >
             <div
               className="preset-media"

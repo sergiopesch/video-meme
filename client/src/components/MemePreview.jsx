@@ -28,17 +28,21 @@ const MemePreview = ({ result, selectedPreset, isLoading }) => {
       return;
     }
 
-    const response = await fetch(assetUrl);
-    const blob = await response.blob();
-    const objectUrl = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = objectUrl;
-    link.download = output.fileName;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    URL.revokeObjectURL(objectUrl);
-    setActionMessage('GIF downloaded.');
+    try {
+      const response = await fetch(assetUrl);
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = objectUrl;
+      link.download = output.fileName;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(objectUrl);
+      setActionMessage('GIF downloaded.');
+    } catch {
+      setActionMessage('Download failed. Try opening the GIF in a new tab.');
+    }
   };
 
   const handleCopy = async () => {
@@ -46,8 +50,12 @@ const MemePreview = ({ result, selectedPreset, isLoading }) => {
       return;
     }
 
-    await navigator.clipboard.writeText(assetUrl);
-    setActionMessage('Link copied.');
+    try {
+      await navigator.clipboard.writeText(assetUrl);
+      setActionMessage('Link copied.');
+    } catch {
+      setActionMessage('Copy failed. Long-press the GIF and copy the link manually.');
+    }
   };
 
   const handleShare = async () => {
@@ -60,27 +68,31 @@ const MemePreview = ({ result, selectedPreset, isLoading }) => {
       return;
     }
 
-    const response = await fetch(assetUrl);
-    const blob = await response.blob();
-    const file = new File([blob], output.fileName, { type: output.mimeType });
-    const sharePayload = {
-      title: `${result.preset.name} GIF`,
-      text: 'Optimized mobile-share GIF. No audio.',
-      files: [file],
-    };
+    try {
+      const response = await fetch(assetUrl);
+      const blob = await response.blob();
+      const file = new File([blob], output.fileName, { type: output.mimeType });
+      const sharePayload = {
+        title: `${result.preset.name} GIF`,
+        text: 'Optimized mobile-share GIF. No audio.',
+        files: [file],
+      };
 
-    if (typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
-      await navigator.share(sharePayload);
-      setActionMessage('GIF handed off to the native share sheet.');
-      return;
+      if (typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] })) {
+        await navigator.share(sharePayload);
+        setActionMessage('GIF handed off to the native share sheet.');
+        return;
+      }
+
+      await navigator.share({
+        title: sharePayload.title,
+        text: sharePayload.text,
+        url: assetUrl,
+      });
+      setActionMessage('Link handed off to the native share sheet.');
+    } catch {
+      setActionMessage('Share failed. Try downloading the GIF instead.');
     }
-
-    await navigator.share({
-      title: sharePayload.title,
-      text: sharePayload.text,
-      url: assetUrl,
-    });
-    setActionMessage('Link handed off to the native share sheet.');
   };
 
   return (

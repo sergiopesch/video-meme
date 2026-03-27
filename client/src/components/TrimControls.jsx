@@ -98,6 +98,7 @@ const TrimControls = ({ visible, trim, onChange, presetTrim }) => {
             step="0.1"
             value={trim.startSeconds}
             onChange={(event) => onChange('startSeconds', event.target.value)}
+            inputMode="decimal"
           />
         </label>
 
@@ -126,6 +127,7 @@ const TrimControls = ({ visible, trim, onChange, presetTrim }) => {
             step="0.1"
             value={trim.durationSeconds}
             onChange={(event) => onChange('durationSeconds', event.target.value)}
+            inputMode="decimal"
           />
         </label>
       </div>

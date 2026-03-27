@@ -301,7 +301,7 @@ function App() {
               )}
 
               <button
-                className="primary-button"
+                className="primary-button full-width-mobile render-button"
                 type="button"
                 onClick={renderMeme}
                 disabled={isLoading || !selectedPreset || (!media.file && !media.mediaUrl)}

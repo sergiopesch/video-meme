@@ -35,6 +35,10 @@ const ImageUploader = ({ media, onChange, onVideoMetadata }) => {
   const inputRef = useRef(null);
   const [mediaUrlInput, setMediaUrlInput] = useState(media.mediaUrl || '');
 
+  const openFilePicker = () => {
+    inputRef.current?.click();
+  };
+
   useEffect(() => {
     setMediaUrlInput(media.mediaUrl || '');
   }, [media.mediaUrl]);
@@ -69,6 +73,15 @@ const ImageUploader = ({ media, onChange, onVideoMetadata }) => {
     });
   };
 
+  const clearMedia = () => {
+    setMediaUrlInput('');
+    if (inputRef.current) {
+      inputRef.current.value = '';
+    }
+
+    onChange({ file: null, mediaUrl: '', previewUrl: '', mediaType: '' });
+  };
+
   const sourceLabel = media.file?.name || media.mediaUrl || '';
   const inlinePreview = canInlinePreview(media);
 
@@ -84,10 +97,22 @@ const ImageUploader = ({ media, onChange, onVideoMetadata }) => {
 
       <div
         className={`upload-surface ${media.previewUrl ? 'has-preview' : ''}`}
-        onClick={() => inputRef.current?.click()}
+        onClick={media.previewUrl ? undefined : openFilePicker}
         onDragOver={(event) => event.preventDefault()}
         onDrop={handleDrop}
-        role="presentation"
+        onKeyDown={(event) => {
+          if (media.previewUrl) {
+            return;
+          }
+
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            openFilePicker();
+          }
+        }}
+        role="button"
+        tabIndex={0}
+        aria-label={media.previewUrl ? 'Media preview area' : 'Upload media'}
       >
         {media.previewUrl ? (
           inlinePreview && media.mediaType === 'video' ? (
@@ -95,10 +120,17 @@ const ImageUploader = ({ media, onChange, onVideoMetadata }) => {
               src={media.previewUrl}
               controls
               className="upload-preview"
+              playsInline
               onLoadedMetadata={(event) => onVideoMetadata(event.currentTarget.duration)}
+              onClick={(event) => event.stopPropagation()}
             />
           ) : inlinePreview && media.mediaType === 'image' ? (
-            <img src={media.previewUrl} alt="Uploaded source" className="upload-preview" />
+            <img
+              src={media.previewUrl}
+              alt="Uploaded source"
+              className="upload-preview"
+              onClick={(event) => event.stopPropagation()}
+            />
           ) : (
             <div className="upload-copy url-summary">
               <span className="upload-icon">↗</span>
@@ -116,9 +148,14 @@ const ImageUploader = ({ media, onChange, onVideoMetadata }) => {
       </div>
 
       <div className="upload-actions">
-        <button type="button" className="secondary-button" onClick={() => inputRef.current?.click()}>
+        <button type="button" className="secondary-button" onClick={openFilePicker}>
           {media.previewUrl ? 'Replace local file' : 'Choose file'}
         </button>
+        {sourceLabel && (
+          <button type="button" className="secondary-button" onClick={clearMedia}>
+            Clear source
+          </button>
+        )}
         {sourceLabel && <span className="file-meta">{sourceLabel}</span>}
       </div>
 
@@ -130,6 +167,13 @@ const ImageUploader = ({ media, onChange, onVideoMetadata }) => {
             placeholder="https://www.youtube.com/watch?v=..."
             value={mediaUrlInput}
             onChange={(event) => setMediaUrlInput(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                applyMediaUrl();
+              }
+            }}
+            inputMode="url"
           />
           <small>
             Direct image/video files work best. YouTube support is intentionally bounded and only accepts pages that
@@ -137,7 +181,7 @@ const ImageUploader = ({ media, onChange, onVideoMetadata }) => {
           </small>
         </label>
         <div className="url-actions">
-          <button type="button" className="secondary-button" onClick={applyMediaUrl}>
+          <button type="button" className="secondary-button full-width-mobile" onClick={applyMediaUrl}>
             Use URL
           </button>
         </div>

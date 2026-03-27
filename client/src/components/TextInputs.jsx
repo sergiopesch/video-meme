@@ -21,6 +21,7 @@ const TextInputs = ({ slots, values, onChange }) => {
                 maxLength={slot.maxLength}
                 placeholder={slot.placeholder}
                 onChange={(event) => onChange(slot.id, event.target.value)}
+                spellCheck="true"
               />
             ) : (
               <input
@@ -29,6 +30,7 @@ const TextInputs = ({ slots, values, onChange }) => {
                 maxLength={slot.maxLength}
                 placeholder={slot.placeholder}
                 onChange={(event) => onChange(slot.id, event.target.value)}
+                spellCheck="true"
               />
             )}
             <small>{values[slot.id]?.length || 0} / {slot.maxLength}</small>
