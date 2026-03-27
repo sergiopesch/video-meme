@@ -14,7 +14,7 @@ function clamp(value, min, max) {
 function App() {
   const [presets, setPresets] = useState([]);
   const [selectedPresetId, setSelectedPresetId] = useState('');
-  const [media, setMedia] = useState({ file: null, previewUrl: '', mediaType: '' });
+  const [media, setMedia] = useState({ file: null, mediaUrl: '', previewUrl: '', mediaType: '' });
   const [sourceDuration, setSourceDuration] = useState(null);
   const [editor, setEditor] = useState({
     topText: '',
@@ -92,23 +92,23 @@ function App() {
 
   useEffect(() => {
     return () => {
-      if (media.previewUrl) {
+      if (media.file && media.previewUrl && media.previewUrl.startsWith('blob:')) {
         URL.revokeObjectURL(media.previewUrl);
       }
     };
-  }, [media.previewUrl]);
+  }, [media.file, media.previewUrl]);
 
   const handlePresetSelect = (presetId) => {
     setSelectedPresetId(presetId);
     setRenderResult(null);
   };
 
-  const handleMediaChange = ({ file, previewUrl, mediaType }) => {
-    if (media.previewUrl) {
+  const handleMediaChange = ({ file, mediaUrl = '', previewUrl, mediaType }) => {
+    if (media.file && media.previewUrl && media.previewUrl.startsWith('blob:')) {
       URL.revokeObjectURL(media.previewUrl);
     }
 
-    setMedia({ file, previewUrl, mediaType });
+    setMedia({ file, mediaUrl, previewUrl, mediaType });
     setSourceDuration(null);
     setRenderResult(null);
     setError('');
@@ -160,8 +160,8 @@ function App() {
   };
 
   const renderMeme = async () => {
-    if (!selectedPreset || !media.file) {
-      setError('Pick a preset and upload an image or short video clip first.');
+    if (!selectedPreset || (!media.file && !media.mediaUrl)) {
+      setError('Pick a preset and add an upload or direct media URL first.');
       return;
     }
 
@@ -179,7 +179,11 @@ function App() {
       formData.append('startSeconds', String(editor.startSeconds));
     }
 
-    formData.append('media', media.file);
+    if (media.file) {
+      formData.append('media', media.file);
+    } else if (media.mediaUrl) {
+      formData.append('mediaUrl', media.mediaUrl);
+    }
 
     try {
       const response = await apiFetch('/api/renders', {
@@ -212,7 +216,7 @@ function App() {
           <span className="eyebrow">Deterministic render pipeline</span>
           <h1>Video Meme Editor</h1>
           <p>
-            Upload an image or a short clip, drop in captions, trim the moment, and render a shareable MP4.
+            Upload an image or short clip, or paste a direct media URL, then drop in captions, trim the moment, and render a shareable MP4.
           </p>
         </div>
       </header>
@@ -273,7 +277,7 @@ function App() {
                 className="primary-button"
                 type="button"
                 onClick={renderMeme}
-                disabled={isLoading || !selectedPreset || !media.file}
+                disabled={isLoading || !selectedPreset || (!media.file && !media.mediaUrl)}
               >
                 {isLoading ? 'Rendering meme video…' : 'Render meme video'}
               </button>

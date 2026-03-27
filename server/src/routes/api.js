@@ -3,6 +3,7 @@ const multer = require('multer');
 const { listPresets, getDefaultPreset } = require('../presets/presetRegistry');
 const { normalizeRenderRequest } = require('../validation/renderRequest');
 const { createUploadMiddleware, extractUploadedFile } = require('../uploads');
+const { fetchRemoteMedia } = require('../services/remoteMediaService');
 const { createHttpError } = require('../utils/errors');
 const { removeFileIfExists } = require('../utils/files');
 
@@ -19,11 +20,19 @@ function createApiRouter({ env, renderService }) {
 
   const renderHandler = async (req, res, next) => {
     const uploadedFile = extractUploadedFile(req.files);
+    let acquiredFile = uploadedFile;
 
     try {
+      if (!acquiredFile && req.body?.mediaUrl) {
+        acquiredFile = await fetchRemoteMedia({
+          env,
+          mediaUrl: req.body.mediaUrl,
+        });
+      }
+
       const request = normalizeRenderRequest({
         body: req.body,
-        file: uploadedFile,
+        file: acquiredFile,
       });
       const result = await renderService.render(request);
 
@@ -31,7 +40,7 @@ function createApiRouter({ env, renderService }) {
     } catch (error) {
       next(error);
     } finally {
-      await removeFileIfExists(uploadedFile?.path);
+      await removeFileIfExists(acquiredFile?.path);
     }
   };
 

@@ -7,16 +7,36 @@ const { once } = require('events');
 const { createApp } = require('../src/app');
 const { createTempHarness, createSampleImage } = require('../test-support/helpers');
 
+async function startServer(server) {
+  server.listen(0);
+  await once(server, 'listening');
+  return server.address().port;
+}
+
+async function stopServer(server) {
+  if (typeof server.closeIdleConnections === 'function') {
+    server.closeIdleConnections();
+  }
+
+  await new Promise((resolve, reject) => {
+    server.close((error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+
+      resolve();
+    });
+  });
+}
+
 test('API exposes presets and renders a meme through the HTTP boundary', async () => {
   const harness = await createTempHarness();
   const app = createApp({ env: harness.env });
   const server = http.createServer(app);
 
   try {
-    server.listen(0);
-    await once(server, 'listening');
-
-    const port = server.address().port;
+    const port = await startServer(server);
     const baseUrl = `http://127.0.0.1:${port}`;
 
     const presetsResponse = await fetch(`${baseUrl}/api/templates`);
@@ -53,8 +73,60 @@ test('API exposes presets and renders a meme through the HTTP boundary', async (
     assert.equal(videoResponse.status, 200);
     assert.equal(videoResponse.headers.get('content-type'), 'video/mp4');
   } finally {
-    server.close();
-    await once(server, 'close');
+    await stopServer(server);
+    await harness.cleanup();
+  }
+});
+
+test('API can fetch a direct media URL before rendering', async () => {
+  const harness = await createTempHarness();
+  const app = createApp({ env: harness.env });
+  const apiServer = http.createServer(app);
+  const remoteServer = http.createServer(async (req, res) => {
+    if (req.url !== '/fixture.png') {
+      res.statusCode = 404;
+      res.end('not found');
+      return;
+    }
+
+    const imagePath = path.join(harness.rootDir, 'remote-fixture.png');
+    const imageBuffer = await fs.readFile(imagePath);
+    res.setHeader('content-type', 'image/png');
+    res.setHeader('content-length', String(imageBuffer.length));
+    res.end(imageBuffer);
+  });
+
+  try {
+    const imagePath = await createSampleImage(path.join(harness.rootDir, 'remote-fixture.png'));
+    assert.ok(imagePath);
+
+    const apiPort = await startServer(apiServer);
+    const remotePort = await startServer(remoteServer);
+    const apiBaseUrl = `http://127.0.0.1:${apiPort}`;
+    const mediaUrl = `http://127.0.0.1:${remotePort}/fixture.png`;
+
+    const formData = new FormData();
+    formData.append('presetId', 'classic-impact');
+    formData.append('topText', 'REMOTE SOURCE');
+    formData.append('bottomText', 'FETCHED CLEANLY');
+    formData.append('durationSeconds', '2');
+    formData.append('mediaUrl', mediaUrl);
+
+    const renderResponse = await fetch(`${apiBaseUrl}/api/renders`, {
+      method: 'POST',
+      body: formData,
+    });
+
+    assert.equal(renderResponse.status, 201);
+    const renderPayload = await renderResponse.json();
+    assert.equal(renderPayload.render.inputType, 'image');
+    assert.equal(renderPayload.render.durationSeconds, 2);
+
+    const uploadsEntries = await fs.readdir(harness.env.paths.uploadsDir);
+    assert.equal(uploadsEntries.some((entry) => entry.startsWith('remote-')), false);
+  } finally {
+    await stopServer(apiServer);
+    await stopServer(remoteServer);
     await harness.cleanup();
   }
 });

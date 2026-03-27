@@ -60,7 +60,7 @@ function inferInputType(file) {
 
 function normalizeRenderRequest({ body, file }) {
   if (!file) {
-    throw createHttpError(400, 'Upload an image or video file before rendering.');
+    throw createHttpError(400, 'Upload an image or video file, or provide a direct media URL, before rendering.');
   }
 
   const legacySettings = parseLegacySettings(body.settings);

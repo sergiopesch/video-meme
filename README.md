@@ -4,7 +4,7 @@ A deterministic meme editor that turns an uploaded image or short video clip int
 
 This repo has been refocused away from AI generation. The product direction now starts with dependable editing and rendering:
 
-- upload an **image** or **short video clip**
+- upload an **image** or **short video clip**, or paste a **direct media URL**
 - choose a **preset/template**
 - add **top text, bottom text, and/or caption text**
 - trim **video** input with start + duration controls
@@ -22,6 +22,7 @@ This repo has been refocused away from AI generation. The product direction now 
 ### Frontend
 - preset-first meme editor UI
 - image/video upload with local preview
+- direct image/video URL ingestion for remotely hosted assets
 - caption inputs driven by preset metadata
 - trim controls for video sources
 - render preview with download/copy-link actions
@@ -109,6 +110,7 @@ Returns structured preset metadata.
 Multipart form-data fields:
 
 - `media` — image or video file
+- `mediaUrl` — direct image/video URL when you want the server to fetch the source asset
 - `presetId`
 - `topText`
 - `bottomText`
@@ -148,7 +150,7 @@ npm run build
 
 Not implemented yet:
 
-- YouTube/import URL ingestion
+- YouTube page ingestion
 - a large preset marketplace/catalog
 - timeline editing beyond start + duration trim
 - sticker layers, audio track editing, or multi-scene composition
