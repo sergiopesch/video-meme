@@ -5,17 +5,14 @@ const { listPresets, getDefaultPreset, getPresetById } = require('../src/presets
 test('preset registry returns structured metadata for the editor', () => {
   const presets = listPresets();
 
-  assert.ok(presets.length >= 6);
+  assert.equal(presets.length, 1);
   assert.equal(getDefaultPreset().id, presets[0].id);
-  assert.equal(getDefaultPreset().id, 'story-stack');
+  assert.equal(getDefaultPreset().id, 'caption-punch');
 
   for (const preset of presets) {
     assert.ok(preset.id);
     assert.ok(preset.name);
-    assert.ok(preset.thumbnail?.src);
-    assert.ok(preset.thumbnail?.alt);
     assert.ok(Array.isArray(preset.inputTypes));
-    assert.ok(Array.isArray(preset.tags));
     assert.ok(Array.isArray(preset.textSlots));
     assert.ok(preset.output.width > 0);
     assert.ok(preset.output.height > 0);
@@ -30,20 +27,19 @@ test('preset registry returns structured metadata for the editor', () => {
     assert.equal(preset.export?.hasAudio, false);
 
     for (const slot of preset.textSlots) {
-      assert.match(slot.id, /^(topText|bottomText|caption)$/);
+      assert.equal(slot.id, 'caption');
       assert.ok(slot.maxLength > 0);
     }
   }
 
-  assert.equal(getPresetById('story-stack')?.name, 'Story Stack');
-  assert.equal(getPresetById('lower-third-burn')?.thumbnail.src, '/preset-thumbnails/lower-third-burn.svg');
+  assert.equal(getPresetById('caption-punch')?.name, 'Caption Punch');
 });
 
 test('preset selectors return defensive copies of nested metadata', () => {
   const presets = listPresets();
-  presets[0].tags.push('mutated');
+  presets[0].inputTypes.push('audio');
   presets[0].textSlots[0].label = 'Changed';
 
-  assert.ok(!listPresets()[0].tags.includes('mutated'));
+  assert.ok(!listPresets()[0].inputTypes.includes('audio'));
   assert.notEqual(getDefaultPreset().textSlots[0].label, 'Changed');
 });

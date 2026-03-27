@@ -44,18 +44,15 @@ test('API exposes presets and renders a meme through the HTTP boundary', async (
     const presetsPayload = await presetsResponse.json();
 
     assert.ok(Array.isArray(presetsPayload.presets));
-    assert.equal(presetsPayload.defaultPresetId, 'story-stack');
-    assert.ok(presetsPayload.presets.every((preset) => preset.thumbnail?.src));
-    assert.ok(presetsPayload.presets.some((preset) => preset.id === 'status-drop'));
+    assert.equal(presetsPayload.defaultPresetId, 'caption-punch');
+    assert.equal(presetsPayload.presets.length, 1);
     assert.ok(presetsPayload.presets.every((preset) => preset.export?.format === 'gif'));
 
     const imagePath = await createSampleImage(path.join(harness.rootDir, 'request.png'));
     const imageBuffer = await fs.readFile(imagePath);
     const formData = new FormData();
-    formData.append('presetId', 'story-stack');
-    formData.append('topText', 'POV: THE FIX WORKED');
+    formData.append('presetId', 'caption-punch');
     formData.append('caption', 'Ship it, then have tea.');
-    formData.append('bottomText', 'MORALE RESTORED');
     formData.append('durationSeconds', '2');
     formData.append('media', new File([imageBuffer], 'request.png', { type: 'image/png' }));
 
@@ -110,9 +107,8 @@ test('API can fetch a direct media URL before rendering', async () => {
     const mediaUrl = `http://127.0.0.1:${remotePort}/fixture.png`;
 
     const formData = new FormData();
-    formData.append('presetId', 'classic-impact');
-    formData.append('topText', 'REMOTE SOURCE');
-    formData.append('bottomText', 'FETCHED CLEANLY');
+    formData.append('presetId', 'caption-punch');
+    formData.append('caption', 'REMOTE SOURCE');
     formData.append('durationSeconds', '2');
     formData.append('mediaUrl', mediaUrl);
 

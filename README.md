@@ -2,13 +2,13 @@
 
 A deterministic meme editor that turns an uploaded image or short video clip into a mobile-share GIF.
 
-This repo has been refocused away from AI generation. The product direction now starts with dependable editing and rendering:
+This repo is a minimal GIF remix tool:
 
-- upload an **image** or **short video clip**, or paste a **direct media URL** or **YouTube page URL**
-- choose a **preset/template**
-- add **top text, bottom text, and/or caption text**
-- trim **video** input with start + duration controls
-- render a short **GIF** with FFmpeg using an optimized palette pipeline
+- open the app and see featured GIFs
+- search for another GIF or upload your own media
+- add one strong caption
+- trim motion when needed
+- export a short shareable GIF
 
 ## What this slice delivers
 
@@ -21,11 +21,12 @@ This repo has been refocused away from AI generation. The product direction now 
 - legacy route aliases kept for the old `/generate-meme` and `/meme-templates` paths
 
 ### Frontend
-- preset-first meme editor UI
+- one-page GIF-first editor UI
 - image/video upload with local preview
+- featured GIF discovery and GIF search through a server-side Tenor integration
 - direct image/video URL ingestion for remotely hosted assets
 - bounded YouTube page ingestion when the page exposes a directly downloadable stream URL
-- caption inputs driven by preset metadata
+- a single caption-focused editing flow
 - trim controls for short GIF-safe video windows
 - GIF preview with download/copy-link actions and native mobile share when available
 - API base URL helper plus Vite proxy config so the client no longer hardcodes `localhost`
@@ -50,23 +51,17 @@ server/
     uploads.js          multipart handling
 ```
 
-## Presets
+## Editor Profile
 
-The preset system is now the foundation for a future template library. Each preset exposes:
+The current product uses one editing profile:
 
-- output dimensions + fps
-- export format metadata
-- trim limits and default duration
-- supported input types
-- text slots and max lengths
-- styling metadata for both server render and client UI
-
-Current presets are intentionally small and foundation-focused:
-
-- `story-stack`
-- `status-drop`
-- `classic-impact`
 - `caption-punch`
+
+It keeps the interface intentionally small and supports:
+
+- one caption field
+- GIF-safe duration limits
+- image and video inputs
 
 ## Running locally
 
@@ -146,7 +141,7 @@ Returns the current featured GIFs from Tenor when `TENOR_API_KEY` is configured.
 Searches Tenor GIFs and returns a compact result set for the editor.
 
 ### `GET /api/templates`
-Returns structured preset metadata.
+Returns the active editor profile metadata.
 
 ### `POST /api/renders`
 Multipart form-data fields:

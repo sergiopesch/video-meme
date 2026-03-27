@@ -18,13 +18,13 @@ test('RenderService renders an image into a GIF meme clip', async () => {
     const renderService = new RenderService(harness.env);
 
     const result = await renderService.render({
-      preset: getPresetById('classic-impact'),
-      presetId: 'classic-impact',
+      preset: getPresetById('caption-punch'),
+      presetId: 'caption-punch',
       inputType: 'image',
       mediaPath: imagePath,
-      topText: 'BUILD SHIPPED',
-      bottomText: 'NO REGRETS',
-      caption: '',
+      topText: '',
+      bottomText: '',
+      caption: 'BUILD SHIPPED',
       startSeconds: 0,
       durationSeconds: 3,
     });
