@@ -12,6 +12,8 @@ async function createTempHarness() {
     port: 0,
     clientUrl: 'http://localhost:5173',
     maxUploadSize: 50 * 1024 * 1024,
+    maxRemoteHtmlSize: 2 * 1024 * 1024,
+    allowPrivateMediaUrls: true,
     giphyApiKey: '',
     giphyApiBaseUrl: 'http://127.0.0.1',
     ffmpegBin: 'ffmpeg',

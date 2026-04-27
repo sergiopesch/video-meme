@@ -54,6 +54,7 @@ const MemePreview = ({
   textValues = {},
   textLayout = {},
   onTextLayoutChange,
+  onSourceVideoMetadata,
 }) => {
   const assetUrl = result?.outputUrl ? buildApiUrl(result.outputUrl) : '';
   const stageRef = useRef(null);
@@ -230,6 +231,7 @@ const MemePreview = ({
                 loop
                 muted
                 playsInline
+                onLoadedMetadata={(event) => onSourceVideoMetadata?.(event.currentTarget.duration)}
               />
             ) : (
               <img src={sourceMedia.previewUrl} alt="Source media preview" className="preview-source-media" />

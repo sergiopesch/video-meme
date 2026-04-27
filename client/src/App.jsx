@@ -4,7 +4,9 @@ import GifSearch from './components/GifSearch';
 import ImageUploader from './components/ImageUploader';
 import MemePreview from './components/MemePreview';
 import TextInputs from './components/TextInputs';
+import TrimControls from './components/TrimControls';
 import { apiFetch } from './lib/api';
+import { buildTrimState, normalizeVideoTrim } from './lib/trim';
 
 const DEFAULT_PRESET_ID = 'caption-punch';
 const REMIX_PRESET_ID = 'classic-remix';
@@ -36,6 +38,11 @@ function App() {
   const [editorMode, setEditorMode] = useState(EDITOR_MODES.CAPTION);
   const [mediaSource, setMediaSource] = useState('search');
   const [media, setMedia] = useState({ file: null, mediaUrl: '', previewUrl: '', mediaType: '' });
+  const [sourceDuration, setSourceDuration] = useState(null);
+  const [trimDraft, setTrimDraft] = useState({
+    startSeconds: 0,
+    durationSeconds: null,
+  });
   const [editor, setEditor] = useState({
     topText: '',
     bottomText: '',
@@ -59,6 +66,18 @@ function App() {
     [presets, activePresetId],
   );
   const activeLoadingHint = loadingHints[loadingHintIndex] || loadingHints[0];
+  const trimState = useMemo(() => {
+    if (!selectedPreset || media.mediaType !== 'video') {
+      return null;
+    }
+
+    return buildTrimState({
+      preset: selectedPreset,
+      sourceDuration,
+      startSeconds: trimDraft.startSeconds,
+      durationSeconds: trimDraft.durationSeconds ?? selectedPreset.trim.defaultDurationSeconds,
+    });
+  }, [media.mediaType, selectedPreset, sourceDuration, trimDraft]);
 
   useEffect(() => {
     if (!isLoading) {
@@ -156,6 +175,11 @@ function App() {
     }
 
     setMedia({ file, mediaUrl, previewUrl, mediaType });
+    setSourceDuration(null);
+    setTrimDraft({
+      startSeconds: 0,
+      durationSeconds: null,
+    });
     setRenderResult(null);
     setError('');
   };
@@ -186,6 +210,32 @@ function App() {
     setRenderResult(null);
   };
 
+  const handleVideoMetadata = (duration) => {
+    setSourceDuration(Number.isFinite(duration) && duration > 0 ? duration : null);
+  };
+
+  const handleTrimChange = (field, value) => {
+    if (!selectedPreset) {
+      return;
+    }
+
+    const normalizedTrim = normalizeVideoTrim(
+      {
+        startSeconds: trimState?.startSeconds ?? trimDraft.startSeconds,
+        durationSeconds:
+          trimState?.durationSeconds ??
+          trimDraft.durationSeconds ??
+          selectedPreset.trim.defaultDurationSeconds,
+        [field]: value,
+      },
+      selectedPreset,
+      sourceDuration,
+    );
+
+    setTrimDraft(normalizedTrim);
+    setRenderResult(null);
+  };
+
   const activeTextSlots = selectedPreset?.textSlots || [];
 
   const renderMeme = async () => {
@@ -202,6 +252,12 @@ function App() {
     formData.append('topText', editor.topText);
     formData.append('bottomText', editor.bottomText);
     formData.append('caption', editor.caption);
+
+    if (trimState) {
+      formData.append('startSeconds', String(trimState.startSeconds));
+      formData.append('durationSeconds', String(trimState.durationSeconds));
+    }
+
     formData.append(
       'textLayout',
       JSON.stringify(
@@ -304,6 +360,7 @@ function App() {
                 <ImageUploader
                   media={media}
                   onChange={handleMediaChange}
+                  onVideoMetadata={handleVideoMetadata}
                 />
               )}
 
@@ -313,6 +370,13 @@ function App() {
                     slots={activeTextSlots}
                     values={editor}
                     onChange={handleTextChange}
+                  />
+
+                  <TrimControls
+                    visible={media.mediaType === 'video'}
+                    trim={trimState}
+                    presetTrim={selectedPreset?.trim}
+                    onChange={handleTrimChange}
                   />
 
                   <button
@@ -342,6 +406,7 @@ function App() {
             textValues={editor}
             textLayout={textLayout}
             onTextLayoutChange={handleLayoutChange}
+            onSourceVideoMetadata={handleVideoMetadata}
           />
         </section>
       </main>

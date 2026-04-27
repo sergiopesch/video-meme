@@ -30,6 +30,8 @@ function loadEnv() {
     port: Number(process.env.PORT || 5000),
     clientUrl: process.env.CLIENT_URL || 'http://localhost:5173',
     maxUploadSize: Number(process.env.MAX_UPLOAD_SIZE || 50 * 1024 * 1024),
+    maxRemoteHtmlSize: Number(process.env.MAX_REMOTE_HTML_SIZE || 2 * 1024 * 1024),
+    allowPrivateMediaUrls: process.env.ALLOW_PRIVATE_MEDIA_URLS === 'true',
     giphyApiKey: process.env.GIPHY_API_KEY || '',
     giphyApiBaseUrl: process.env.GIPHY_API_BASE_URL || 'https://api.giphy.com/v1/gifs',
     ffmpegBin: process.env.FFMPEG_BIN || 'ffmpeg',

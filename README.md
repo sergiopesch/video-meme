@@ -133,6 +133,8 @@ Key variables:
 
 - `PORT`
 - `MAX_UPLOAD_SIZE`
+- `MAX_REMOTE_HTML_SIZE`
+- `ALLOW_PRIVATE_MEDIA_URLS`
 - `GIPHY_API_KEY`
 - `FFMPEG_BIN`
 - `FFPROBE_BIN`
@@ -141,6 +143,8 @@ Key variables:
 - `VITE_API_PROXY_TARGET`
 
 Add `GIPHY_API_KEY` in Render if you want the homepage to show featured GIFs and search results.
+
+Remote media imports reject private, loopback, link-local, and other non-public network addresses by default. Keep `ALLOW_PRIVATE_MEDIA_URLS` unset in production; set it to `true` only for local development or controlled tests that intentionally fetch from localhost.
 
 ## API
 
@@ -163,8 +167,8 @@ Multipart form-data fields:
 - `bottomText`
 - `caption`
 - `textLayout` (optional JSON map of slot IDs to normalized `{ x, y }` anchors, 0..1)
-- `startSeconds` (video only)
-- `durationSeconds`
+- `startSeconds` (video only, populated by the trim controls)
+- `durationSeconds` (video trim length; image renders use the preset default when omitted)
 
 Response shape:
 

@@ -1,9 +1,13 @@
 const fs = require('fs/promises');
 const path = require('path');
+const dns = require('dns/promises');
+const net = require('net');
 const { randomUUID } = require('crypto');
 const { createHttpError } = require('../utils/errors');
 
 const FETCH_TIMEOUT_MS = 15000;
+const MAX_REDIRECTS = 5;
+const DEFAULT_MAX_REMOTE_HTML_SIZE = 2 * 1024 * 1024;
 const HTML_CONTENT_TYPES = new Set(['text/html', 'application/xhtml+xml']);
 const IMAGE_EXTENSIONS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.gif']);
 const VIDEO_EXTENSIONS = new Set(['.mp4', '.mov', '.webm', '.mkv']);
@@ -63,13 +67,119 @@ function isHtmlContentType(contentType) {
   return HTML_CONTENT_TYPES.has(contentType);
 }
 
-async function fetchWithTimeout(targetUrl) {
+function normalizeHostname(hostname) {
+  return String(hostname || '').replace(/^\[|\]$/g, '').toLowerCase();
+}
+
+function isPrivateIPv4(address) {
+  const parts = address.split('.').map((part) => Number(part));
+  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) {
+    return true;
+  }
+
+  const [first, second] = parts;
+
+  return (
+    first === 0 ||
+    first === 10 ||
+    first === 127 ||
+    (first === 100 && second >= 64 && second <= 127) ||
+    (first === 169 && second === 254) ||
+    (first === 172 && second >= 16 && second <= 31) ||
+    (first === 192 && second === 0) ||
+    (first === 192 && second === 168) ||
+    (first === 198 && (second === 18 || second === 19)) ||
+    first >= 224
+  );
+}
+
+function isPrivateIPv6(address) {
+  const normalized = normalizeHostname(address);
+  const lower = normalized.toLowerCase();
+
+  if (lower === '::' || lower === '::1') {
+    return true;
+  }
+
+  const mappedIpv4 = lower.match(/(?:::ffff:)?(\d+\.\d+\.\d+\.\d+)$/);
+  if (mappedIpv4) {
+    return isPrivateIPv4(mappedIpv4[1]);
+  }
+
+  return (
+    lower.startsWith('fc') ||
+    lower.startsWith('fd') ||
+    lower.startsWith('fe80:') ||
+    lower.startsWith('ff')
+  );
+}
+
+function isPrivateIpAddress(address) {
+  const ipVersion = net.isIP(normalizeHostname(address));
+
+  if (ipVersion === 4) {
+    return isPrivateIPv4(normalizeHostname(address));
+  }
+
+  if (ipVersion === 6) {
+    return isPrivateIPv6(address);
+  }
+
+  return true;
+}
+
+async function assertPublicMediaUrl(targetUrl, env) {
+  const parsedUrl = targetUrl instanceof URL ? targetUrl : new URL(targetUrl);
+
+  if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+    throw createHttpError(400, 'mediaUrl must use http or https.');
+  }
+
+  if (env.allowPrivateMediaUrls) {
+    return;
+  }
+
+  const hostname = normalizeHostname(parsedUrl.hostname);
+
+  if (!hostname || hostname === 'localhost' || hostname.endsWith('.localhost')) {
+    throw createHttpError(400, 'mediaUrl must resolve to a public internet address.');
+  }
+
+  if (net.isIP(hostname)) {
+    if (isPrivateIpAddress(hostname)) {
+      throw createHttpError(400, 'mediaUrl must resolve to a public internet address.');
+    }
+
+    return;
+  }
+
+  let addresses;
+  try {
+    addresses = await dns.lookup(hostname, { all: true });
+  } catch (error) {
+    throw createHttpError(400, 'Could not resolve the media URL hostname.', error.message);
+  }
+
+  if (!addresses.length || addresses.some((entry) => isPrivateIpAddress(entry.address))) {
+    throw createHttpError(400, 'mediaUrl must resolve to a public internet address.');
+  }
+}
+
+function isRedirectResponse(response) {
+  return [301, 302, 303, 307, 308].includes(response.status);
+}
+
+async function fetchWithTimeout(targetUrl, env, redirectsRemaining = MAX_REDIRECTS) {
+  const parsedUrl = targetUrl instanceof URL ? targetUrl : new URL(targetUrl);
+  await assertPublicMediaUrl(parsedUrl, env);
+
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
+  let response;
   try {
-    return await fetch(targetUrl, {
-      redirect: 'follow',
+    response = await fetch(parsedUrl, {
+      redirect: 'manual',
       signal: controller.signal,
     });
   } catch (error) {
@@ -81,6 +191,65 @@ async function fetchWithTimeout(targetUrl) {
   } finally {
     clearTimeout(timeout);
   }
+
+  if (!isRedirectResponse(response)) {
+    return response;
+  }
+
+  if (redirectsRemaining <= 0) {
+    throw createHttpError(400, 'Media URL redirected too many times.');
+  }
+
+  const location = response.headers.get('location');
+  if (!location) {
+    throw createHttpError(400, 'Media URL returned a redirect without a location.');
+  }
+
+  await response.body?.cancel?.();
+  return fetchWithTimeout(new URL(location, parsedUrl), env, redirectsRemaining - 1);
+}
+
+async function streamResponseToBuffer(response, maxBytes, overflowMessage) {
+  const chunks = [];
+  let totalBytes = 0;
+
+  for await (const chunk of response.body) {
+    const buffer = Buffer.from(chunk);
+    totalBytes += buffer.length;
+
+    if (totalBytes > maxBytes) {
+      throw createHttpError(413, overflowMessage);
+    }
+
+    chunks.push(buffer);
+  }
+
+  return Buffer.concat(chunks, totalBytes);
+}
+
+async function writeResponseBodyToFile(response, targetPath, maxBytes) {
+  const fileHandle = await fs.open(targetPath, 'w');
+  let totalBytes = 0;
+
+  try {
+    for await (const chunk of response.body) {
+      const buffer = Buffer.from(chunk);
+      totalBytes += buffer.length;
+
+      if (totalBytes > maxBytes) {
+        throw createHttpError(413, `Remote media exceeds the ${formatLimit(maxBytes)} upload limit.`);
+      }
+
+      await fileHandle.write(buffer);
+    }
+  } catch (error) {
+    await fs.rm(targetPath, { force: true });
+    throw error;
+  } finally {
+    await fileHandle.close();
+  }
+
+  return totalBytes;
 }
 
 function extractJsonObjectAfterMarker(source, marker) {
@@ -260,29 +429,22 @@ async function downloadMediaResponse({ env, response, sourceUrl, fileBaseName })
     );
   }
 
-  const arrayBuffer = await response.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-
-  if (buffer.length === 0) {
-    throw createHttpError(400, 'The provided media URL returned an empty file.');
-  }
-
-  if (buffer.length > env.maxUploadSize) {
-    throw createHttpError(413, `Remote media exceeds the ${formatLimit(env.maxUploadSize)} upload limit.`);
-  }
-
   const targetExtension = extension || EXTENSION_BY_MIME[mimeType] || '';
   const baseName = sanitizeBaseName(fileBaseName || path.basename(parsedSourceUrl.pathname, extension) || parsedSourceUrl.hostname);
   const originalname = `${baseName}${targetExtension}`;
   const targetPath = path.join(env.paths.uploadsDir, `remote-${randomUUID()}${targetExtension}`);
+  const size = await writeResponseBodyToFile(response, targetPath, env.maxUploadSize);
 
-  await fs.writeFile(targetPath, buffer);
+  if (size === 0) {
+    await fs.rm(targetPath, { force: true });
+    throw createHttpError(400, 'The provided media URL returned an empty file.');
+  }
 
   return {
     path: targetPath,
     originalname,
     mimetype: mimeType,
-    size: buffer.length,
+    size,
     sourceUrl,
   };
 }
@@ -305,11 +467,22 @@ async function fetchRemoteMedia({ env, mediaUrl }) {
     throw createHttpError(400, 'mediaUrl must use http or https.');
   }
 
-  const initialResponse = await fetchWithTimeout(parsedUrl);
+  const initialResponse = await fetchWithTimeout(parsedUrl, env);
   const initialContentType = normalizeContentType(initialResponse.headers.get('content-type'));
 
   if (isHtmlContentType(initialContentType)) {
-    const html = await initialResponse.text();
+    const contentLength = Number(initialResponse.headers.get('content-length') || 0);
+    const htmlLimit = env.maxRemoteHtmlSize || DEFAULT_MAX_REMOTE_HTML_SIZE;
+
+    if (Number.isFinite(contentLength) && contentLength > htmlLimit) {
+      throw createHttpError(413, `Remote page exceeds the ${formatLimit(htmlLimit)} page import limit.`);
+    }
+
+    const html = (await streamResponseToBuffer(
+      initialResponse,
+      htmlLimit,
+      `Remote page exceeds the ${formatLimit(htmlLimit)} page import limit.`,
+    )).toString('utf8');
     const resolvedSource = resolveYouTubeMediaSource(parsedUrl, html);
 
     if (!resolvedSource?.mediaUrl) {
@@ -319,7 +492,7 @@ async function fetchRemoteMedia({ env, mediaUrl }) {
       );
     }
 
-    const mediaResponse = await fetchWithTimeout(resolvedSource.mediaUrl);
+    const mediaResponse = await fetchWithTimeout(resolvedSource.mediaUrl, env);
     return downloadMediaResponse({
       env,
       response: mediaResponse,
