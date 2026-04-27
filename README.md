@@ -1,135 +1,73 @@
 # GIF Meme Editor
 
-A deterministic meme editor that turns an uploaded image or short video clip into a mobile-share GIF.
+A deterministic meme editor that turns an uploaded image, GIF, or short video clip into a mobile-share GIF.
 
-This repo is a minimal GIF remix tool:
+This is not an AI generator. It is a small editor: pick media, add text, position it, trim video if needed, and export a GIF with FFmpeg.
 
-- open the app and see featured GIFs
-- search for another GIF or upload your own media
-- add one strong caption
-- export a short shareable GIF
+![GIF Meme Editor demo](docs/demo.gif)
 
-## What this slice delivers
+## What It Does
 
-### Backend
-- modular Express API instead of a single monolithic file
-- FFmpeg render pipeline for image/video to GIF rendering
-- structured preset registry returned by the API
-- explicit GIF export metadata in preset + render responses
-- static output hosting for rendered GIF files
-- legacy route aliases kept for the old `/generate-meme` and `/meme-templates` paths
+- Search for GIFs with GIPHY or upload your own media.
+- Add a quick caption or remix top/bottom meme text.
+- Drag text directly on the preview before rendering.
+- Trim short video sources.
+- Export a shareable GIF with no audio.
 
-### Frontend
-- one-page GIF-first editor UI
-- mode switch for quick captioning vs remixing an existing meme
-- image/video upload with local preview
-- featured GIF discovery and GIF search through a server-side GIPHY integration
-- direct image/video URL ingestion for remotely hosted assets
-- bounded YouTube page ingestion when the page exposes a directly downloadable stream URL
-- a single caption-focused editing flow
-- remix flow that masks common top/bottom meme text zones before applying replacement copy
-- automatic short GIF duration defaults for video sources
-- pre-render interactive preview where text can be dragged into place before generation
-- GIF preview with download/copy-link actions and native mobile share when available
-- API base URL helper plus Vite proxy config so the client no longer hardcodes `localhost`
+## Stack
 
-### Tests
-- preset registry metadata tests
-- render service tests that execute the real FFmpeg pipeline
-- HTTP API integration test for preset listing + render endpoint
-- client helper test for API URL resolution
+- Client: React 19 + Vite
+- Server: Express + Multer
+- Rendering: FFmpeg + FFprobe
+- Tests: Node test runner
+- Deployment: Docker web service on Render
 
-## Architecture
+## Run Locally
 
-```text
-client/                 React editor
-server/
-  src/
-    app.js              app factory
-    routes/api.js       HTTP routes
-    presets/            preset registry
-    services/           FFmpeg + render pipeline
-    validation/         request normalization
-    uploads.js          multipart handling
-```
+Prerequisites:
 
-## Editor Profile
-
-The current product uses two editing profiles:
-
-- `caption-punch`
-- `classic-remix`
-
-`caption-punch` keeps the interface intentionally small and supports:
-
-- one caption field
-- GIF-safe duration limits
-- image and video inputs
-
-`classic-remix` is tuned for editing existing memes:
-
-- top + bottom replacement text fields
-- automatic masking of common top/bottom text zones
-- replacement text auto-formatted to classic uppercase meme styling
-- GIF-safe duration limits
-- image and video inputs
-
-## Running locally
-
-### Prerequisites
 - Node.js 20+
 - npm
 - `ffmpeg` and `ffprobe` on PATH
-- a usable bold font for FFmpeg drawtext (the default is DejaVu Sans Bold)
+- a bold font available to FFmpeg, such as DejaVu Sans Bold
 
-### Install
+Install everything:
 
 ```bash
 npm run install-all
 ```
 
-### Start development mode
+Start the app:
 
 ```bash
 npm run dev
 ```
 
-- API: `http://127.0.0.1:5000`
+Local URLs:
+
 - Client: `http://127.0.0.1:5173`
+- API: `http://127.0.0.1:5000`
 
-## Deploying Free On Render
+## Deploy
 
-This repo is set up to run as a single free Render web service:
-
-- the React client is built during deploy
-- the Express server serves both the API and the built frontend
-- FFmpeg is installed in the container image
+The app is set up to deploy as one Docker web service on Render.
 
 Included deployment files:
 
 - `Dockerfile`
 - `render.yaml`
 
-### Recommended free setup
+Render runs the Express server, serves the built React app, installs FFmpeg in the container, and uses `/api/health` as the health check.
 
-1. Push the repo to GitHub.
-2. In Render, create a new Blueprint or Web Service from this repo.
-3. Use the free instance type.
-4. Keep the default health check at `/api/health`.
+Free-tier notes:
 
-The `render.yaml` file already sets a hobby-friendly upload cap of `20 MB` to keep mobile uploads and GIF renders snappy on the free tier.
+- Free services can spin down after idle time.
+- Generated GIFs are temporary because the filesystem is ephemeral.
+- For durable media storage, add object storage or a paid persistent disk.
 
-### Free-tier caveats
+## Environment
 
-- Render free web services spin down after idle time and can take about a minute to wake up again.
-- The filesystem is ephemeral, so generated GIFs are temporary and can disappear after a restart, redeploy, or spin-down.
-- This setup is ideal for hobby use, testing, and playful experimentation, not durable long-term media storage.
-
-### Environment
-
-Copy `.env.example` or `server/.env.example` if you want to override paths, font, or API base settings.
-
-Key variables:
+Useful variables:
 
 - `PORT`
 - `MAX_UPLOAD_SIZE`
@@ -142,71 +80,35 @@ Key variables:
 - `VITE_API_BASE_URL`
 - `VITE_API_PROXY_TARGET`
 
-Add `GIPHY_API_KEY` in Render if you want the homepage to show featured GIFs and search results.
+Set `GIPHY_API_KEY` if you want featured GIFs and GIF search.
 
-Remote media imports reject private, loopback, link-local, and other non-public network addresses by default. Keep `ALLOW_PRIVATE_MEDIA_URLS` unset in production; set it to `true` only for local development or controlled tests that intentionally fetch from localhost.
+Remote media imports reject private, loopback, link-local, and other non-public network addresses by default. Keep `ALLOW_PRIVATE_MEDIA_URLS` unset or `false` in production.
 
 ## API
 
-### `GET /api/gifs/featured`
-Returns the current trending GIFs from GIPHY when `GIPHY_API_KEY` is configured.
+Main endpoints:
 
-### `GET /api/gifs/search?q=<query>`
-Searches GIPHY GIFs and returns a compact result set for the editor.
+- `GET /api/health`
+- `GET /api/templates`
+- `GET /api/gifs/featured`
+- `GET /api/gifs/search?q=<query>`
+- `POST /api/renders`
 
-### `GET /api/templates`
-Returns the active editor profile metadata.
+`POST /api/renders` accepts multipart form-data:
 
-### `POST /api/renders`
-Multipart form-data fields:
-
-- `media` — image or video file
-- `mediaUrl` — direct image/video URL or a supported YouTube page URL when you want the server to fetch the source asset
+- `media` - uploaded image/video/GIF file
+- `mediaUrl` - direct media URL, or a supported YouTube page URL when a direct stream is exposed
 - `presetId`
+- `caption`
 - `topText`
 - `bottomText`
-- `caption`
-- `textLayout` (optional JSON map of slot IDs to normalized `{ x, y }` anchors, 0..1)
-- `startSeconds` (video only, populated by the trim controls)
-- `durationSeconds` (video trim length; image renders use the preset default when omitted)
+- `textLayout` - optional JSON map of text slot anchors
+- `startSeconds` - video only
+- `durationSeconds`
 
-Response shape:
+The response includes the rendered GIF URL, output metadata, and render metadata.
 
-```json
-{
-  "success": true,
-  "outputUrl": "/output/meme-<id>.gif",
-  "fileName": "meme-<id>.gif",
-  "format": "gif",
-  "mimeType": "image/gif",
-  "preset": {
-    "id": "story-stack"
-  },
-  "output": {
-    "format": "gif",
-    "mimeType": "image/gif",
-    "hasAudio": false
-  },
-  "render": {
-    "inputType": "image",
-    "durationSeconds": 4,
-    "width": 360,
-    "height": 640,
-    "fps": 12,
-    "hasAudio": false
-  }
-}
-```
-
-### YouTube ingestion note
-
-This slice supports a bounded YouTube import path: if the fetched page exposes a directly downloadable video stream URL in the page payload, the server can ingest it and continue through the normal FFmpeg render flow.
-
-If the page only exposes ciphered/signature-protected streams, the API will reject it honestly and ask for a direct media URL or an uploaded clip instead.
-
-## Verification
-
-Useful commands:
+## Validate
 
 ```bash
 npm test
@@ -214,14 +116,24 @@ npm run lint
 npm run build
 ```
 
-## Deliberate non-goals in this slice
+## Project Shape
 
-Not implemented yet:
+```text
+client/                 React editor
+server/
+  src/
+    app.js              app factory
+    routes/api.js       HTTP routes
+    presets/            editor profiles
+    services/           FFmpeg, GIPHY, remote media, render pipeline
+    validation/         request normalization
+    uploads.js          multipart handling
+```
 
-- full YouTube signature-decipher support for pages that do not expose a direct downloadable stream
-- a large preset marketplace/catalog
-- timeline editing beyond start + duration trim
-- sticker layers, audio track editing, or multi-scene composition
-- cloud storage / user accounts / persistence
+## Current Non-Goals
 
-Those are future seams, not missing by accident.
+- AI image or video generation
+- full YouTube signature-decipher support
+- large template marketplace
+- sticker layers or multi-scene timelines
+- user accounts or durable media storage
