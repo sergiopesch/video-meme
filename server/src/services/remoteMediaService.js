@@ -2,6 +2,9 @@ const fs = require('fs/promises');
 const path = require('path');
 const dns = require('dns/promises');
 const net = require('net');
+const http = require('http');
+const https = require('https');
+const ipaddr = require('ipaddr.js');
 const { randomUUID } = require('crypto');
 const { createHttpError } = require('../utils/errors');
 
@@ -71,61 +74,62 @@ function normalizeHostname(hostname) {
   return String(hostname || '').replace(/^\[|\]$/g, '').toLowerCase();
 }
 
-function isPrivateIPv4(address) {
-  const parts = address.split('.').map((part) => Number(part));
-  if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) {
-    return true;
-  }
-
-  const [first, second] = parts;
-
-  return (
-    first === 0 ||
-    first === 10 ||
-    first === 127 ||
-    (first === 100 && second >= 64 && second <= 127) ||
-    (first === 169 && second === 254) ||
-    (first === 172 && second >= 16 && second <= 31) ||
-    (first === 192 && second === 0) ||
-    (first === 192 && second === 168) ||
-    (first === 198 && (second === 18 || second === 19)) ||
-    first >= 224
-  );
-}
-
-function isPrivateIPv6(address) {
-  const normalized = normalizeHostname(address);
-  const lower = normalized.toLowerCase();
-
-  if (lower === '::' || lower === '::1') {
-    return true;
-  }
-
-  const mappedIpv4 = lower.match(/(?:::ffff:)?(\d+\.\d+\.\d+\.\d+)$/);
-  if (mappedIpv4) {
-    return isPrivateIPv4(mappedIpv4[1]);
-  }
-
-  return (
-    lower.startsWith('fc') ||
-    lower.startsWith('fd') ||
-    lower.startsWith('fe80:') ||
-    lower.startsWith('ff')
-  );
-}
-
 function isPrivateIpAddress(address) {
-  const ipVersion = net.isIP(normalizeHostname(address));
-
-  if (ipVersion === 4) {
-    return isPrivateIPv4(normalizeHostname(address));
+  try {
+    // process() converts IPv4-mapped IPv6, including canonical hex forms, to IPv4.
+    return ipaddr.process(normalizeHostname(address)).range() !== 'unicast';
+  } catch (_error) {
+    return true;
   }
+}
 
-  if (ipVersion === 6) {
-    return isPrivateIPv6(address);
-  }
+function lookupMediaAddress(hostname, options, callback, allowPrivateMediaUrls) {
+  dns.lookup(hostname, { ...options, all: true }).then((addresses) => {
+    if (!addresses.length || (!allowPrivateMediaUrls && addresses.some((entry) => isPrivateIpAddress(entry.address)))) {
+      callback(createHttpError(400, 'mediaUrl must resolve to a public internet address.'));
+      return;
+    }
 
-  return true;
+    if (options.all) {
+      callback(null, addresses);
+    } else {
+      callback(null, addresses[0].address, addresses[0].family);
+    }
+  }, callback);
+}
+
+// Validate the addresses used by the connection itself. A separate DNS preflight
+// cannot protect against a hostname returning different answers on the next lookup.
+async function requestMediaUrl(parsedUrl, env) {
+  return new Promise((resolve, reject) => {
+    const transport = parsedUrl.protocol === 'https:' ? https : http;
+    const request = transport.get(parsedUrl, {
+      lookup: (hostname, options, callback) =>
+        lookupMediaAddress(hostname, options, callback, env.allowPrivateMediaUrls),
+    }, (response) => {
+      const headers = new Headers();
+      for (const [name, value] of Object.entries(response.headers)) {
+        if (value !== undefined) headers.set(name, Array.isArray(value) ? value.join(', ') : value);
+      }
+      response.cancel = async () => response.destroy();
+      response.once('end', () => clearTimeout(timeout));
+      response.once('close', () => clearTimeout(timeout));
+      resolve({
+        status: response.statusCode,
+        ok: response.statusCode >= 200 && response.statusCode < 300,
+        headers,
+        body: response,
+      });
+    });
+    const timeout = setTimeout(() => {
+      const error = createHttpError(408, 'Timed out while fetching the media URL.');
+      request.destroy(error);
+    }, FETCH_TIMEOUT_MS);
+    request.once('error', (error) => {
+      clearTimeout(timeout);
+      reject(error);
+    });
+  });
 }
 
 async function assertPublicMediaUrl(targetUrl, env) {
@@ -173,28 +177,19 @@ async function fetchWithTimeout(targetUrl, env, redirectsRemaining = MAX_REDIREC
   const parsedUrl = targetUrl instanceof URL ? targetUrl : new URL(targetUrl);
   await assertPublicMediaUrl(parsedUrl, env);
 
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-
   let response;
   try {
-    response = await fetch(parsedUrl, {
-      redirect: 'manual',
-      signal: controller.signal,
-    });
+    response = await requestMediaUrl(parsedUrl, env);
   } catch (error) {
-    if (error.name === 'AbortError') {
-      throw createHttpError(408, 'Timed out while fetching the media URL.');
-    }
-
+    if (error.status) throw error;
     throw createHttpError(400, 'Could not download the provided media URL.', error.message);
-  } finally {
-    clearTimeout(timeout);
   }
 
   if (!isRedirectResponse(response)) {
     return response;
   }
+
+  await response.body?.cancel?.();
 
   if (redirectsRemaining <= 0) {
     throw createHttpError(400, 'Media URL redirected too many times.');
@@ -205,7 +200,6 @@ async function fetchWithTimeout(targetUrl, env, redirectsRemaining = MAX_REDIREC
     throw createHttpError(400, 'Media URL returned a redirect without a location.');
   }
 
-  await response.body?.cancel?.();
   return fetchWithTimeout(new URL(location, parsedUrl), env, redirectsRemaining - 1);
 }
 
